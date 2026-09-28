@@ -1,0 +1,274 @@
+@import 'tailwindcss';
+
+/*
+ * Lush brand tokens.
+ * Palette adjusted from the brief toward the official price list artwork (blush, pale peach, cream, gold).
+ * These are design choices for the website, not official brand colour codes.
+ */
+@theme static {
+  --color-ivory: #faf6f0;
+  --color-paper: #fffcf8;
+  --color-blush: #f4ddd5;
+  --color-blush-soft: #f8e9e3;
+  --color-rose: #dca69d;
+  --color-rose-ink: #9a5a52;
+  --color-peach: #fbe8db;
+  --color-gold: #b8914f;
+  --color-gold-soft: #d9c39a;
+  --color-gold-ink: #7a6232;
+  --color-charcoal: #282320;
+  --color-charcoal-soft: #3a332f;
+  --color-taupe: #82736a;
+  --color-taupe-ink: #6b5d55;
+  --color-line: #e6d9ce;
+  --color-line-strong: #d4c2b4;
+  --color-danger: #a1362d;
+
+  /* The Lush field (camouflage) layers, lightest to deepest. */
+  --color-field-0: #fbf3ea;
+  --color-field-1: #f9e7dc;
+  --color-field-2: #f5d9cf;
+  --color-field-3: #f0cbc3;
+  --color-field-4: #e8b8af;
+  --color-field-5: #e0a79f;
+
+  --font-display: 'Cormorant Garamond Variable', Georgia, serif;
+  --font-sans: 'Jost Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-arabic-display: 'Noto Naskh Arabic', 'Jost Variable', serif;
+  --font-arabic-sans: 'Noto Sans Arabic', 'Jost Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --breakpoint-xs: 26rem;
+}
+
+@layer base {
+  :root {
+    --header-h: 4.25rem;
+    --bar-h: 0px;
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-padding-top: calc(var(--header-h) + 1rem);
+    /* Keeps the layout still when an open dialog locks page scrolling. */
+    scrollbar-gutter: stable;
+  }
+
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    background: var(--color-ivory);
+    color: var(--color-charcoal);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    font-feature-settings: 'kern', 'liga';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* The mobile appointment bar never covers the end of the page. */
+    padding-bottom: var(--bar-h);
+  }
+
+  :lang(ar) body,
+  body:lang(ar) {
+    font-family: var(--font-arabic-sans);
+    line-height: 1.75;
+  }
+
+  /* In Arabic, utilities that name the Latin faces resolve to the Arabic stacks instead. */
+  :root:lang(ar) {
+    --font-sans: var(--font-arabic-sans);
+    --font-display: var(--font-arabic-display);
+  }
+
+  /* Arabic has no italic; never let the browser fake a slant. */
+  :lang(ar) {
+    font-synthesis: none;
+  }
+  :lang(ar) .italic,
+  :lang(ar) em,
+  :lang(ar) i {
+    font-style: normal;
+  }
+
+  ::selection {
+    background: var(--color-blush);
+    color: var(--color-charcoal);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-charcoal);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Headings and regions that receive focus programmatically (after navigation) need no ring. */
+  [tabindex='-1']:focus {
+    outline: none;
+  }
+
+  button,
+  [role='button'],
+  summary {
+    cursor: pointer;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  img,
+  svg {
+    display: block;
+  }
+
+  /* Native dialogs are used for the menu, look viewer and request flow. */
+  dialog {
+    color: inherit;
+    max-width: none;
+    max-height: none;
+  }
+
+  dialog::backdrop {
+    background: rgb(40 35 32 / 0.42);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    dialog[open] {
+      animation: dialog-in 260ms var(--ease-out-soft);
+    }
+    dialog[open]::backdrop {
+      animation: fade-in 220ms ease-out;
+    }
+    dialog.sheet[open] {
+      animation: sheet-in 300ms var(--ease-out-soft);
+    }
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+@layer components {
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  :lang(ar) .display {
+    font-family: var(--font-arabic-display);
+    letter-spacing: 0;
+    line-height: 1.35;
+  }
+
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-gold-ink);
+  }
+  :lang(ar) .eyebrow {
+    font-family: var(--font-arabic-sans);
+    font-size: 0.875rem;
+    letter-spacing: 0;
+    font-weight: 500;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* Dotted leader between a service name and its price, as on the printed menu. */
+  .leader {
+    flex: 1 1 1.5rem;
+    min-width: 1.5rem;
+    align-self: flex-end;
+    margin-bottom: 0.42em;
+    border-bottom: 1.5px dotted var(--color-gold-soft);
+  }
+
+  .container-page {
+    width: 100%;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 40rem) {
+    .container-page {
+      padding-inline: 2rem;
+    }
+  }
+  @media (min-width: 80rem) {
+    .container-page {
+      padding-inline: 4rem;
+    }
+  }
+
+  .link-underline {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    text-decoration-color: var(--color-gold);
+    transition: text-decoration-color 200ms ease;
+  }
+  .link-underline:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Reserve space for the mobile appointment bar (button + padding + safe area). */
+@media (max-width: 47.99rem) {
+  :root {
+    --bar-h: calc(4.25rem + max(0.75rem, env(safe-area-inset-bottom)));
+  }
+}

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Private client presentation: remove this line when the owner approves publication. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Lush Nail Salon &amp; Spa · Nails, Skin &amp; Spa in New Cairo and Heliopolis</title>
+    <meta
+      name="description"
+      content="Lush Nail Salon & Spa in Cairo. Nail enhancements, manicures, pedicures, facials, Moroccan baths, massage, lashes and bridal packages at Midtown Mall, New Cairo and Omar Ibn El Khattab Street, Heliopolis."
+    />
+    <meta name="theme-color" content="#FAF6F0" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Lush Nail Salon & Spa" />
+    <meta property="og:title" content="Lush Nail Salon & Spa · Cairo" />
+    <meta
+      property="og:description"
+      content="Nails • Skin • Spa. Browse the menu and request an appointment at our New Cairo or Heliopolis branch."
+    />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:locale:alternate" content="ar_EG" />
+    <script>
+      // Apply the visitor's language before first paint, so the right fonts load and nothing flips.
+      (function () {
+        var lang = new URLSearchParams(location.search).get('lang')
+        if (lang !== 'ar' && lang !== 'en') {
+          try { lang = localStorage.getItem('lush.lang') } catch (e) { lang = null }
+        }
+        if (lang === 'ar') {
+          document.documentElement.lang = 'ar-EG'
+          document.documentElement.dir = 'rtl'
+        }
+      })()
+    </script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" as="image" href="/brand/lush-logo.svg" type="image/svg+xml" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "NailSalon",
+            "@id": "#new-cairo",
+            "name": "Lush Nail Salon & Spa — New Cairo",
+            "telephone": "+201064205204",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Midtown Mall, 2nd floor, opposite AUC Gate 4, 5th Settlement",
+              "addressLocality": "New Cairo",
+              "addressRegion": "Cairo Governorate",
+              "addressCountry": "EG"
+            },
+            "hasMap": "https://share.google/2i9ywsEqEBSprMnFR",
+            "sameAs": ["https://www.instagram.com/lushnailsalonspa/"],
+            "priceRange": "50–5500 EGP"
+          },
+          {
+            "@type": "NailSalon",
+            "@id": "#heliopolis",
+            "name": "Lush Nail Salon & Spa — Heliopolis",
+            "telephone": "+201033115133",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "118 Omar Ibn El Khattab Street",
+              "addressLocality": "Heliopolis",
+              "addressRegion": "Cairo Governorate",
+              "addressCountry": "EG"
+            },
+            "hasMap": "https://share.google/jjMSd7ndVvkRPeHfl",
+            "sameAs": ["https://www.instagram.com/lushnailsalonspa/"],
+            "priceRange": "50–5500 EGP"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="font-family: system-ui; padding: 24px">
+        Lush Nail Salon &amp; Spa — New Cairo: Midtown Mall, 2nd floor, opposite AUC Gate 4 · 010 6420 5204.
+        Heliopolis: 118 Omar Ibn El Khattab Street · 010 3311 5133. Instagram: @lushnailsalonspa
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
