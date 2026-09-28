@@ -47,5 +47,5 @@ export interface RequestSeed {
 export type StepId = 'branch' | 'services' | 'when' | 'details' | 'review'
 export const STEPS: readonly StepId[] = ['branch', 'services', 'when', 'details', 'review']
 
-export type FieldName = keyof RequestDraft
+export type FieldName = keyof RequestDraft | 'account'
 export type FieldErrors = Partial<Record<FieldName, string>>

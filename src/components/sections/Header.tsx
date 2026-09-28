@@ -3,6 +3,9 @@ import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { branches, site } from '../../content/site'
 import { goToSection } from '../../lib/scroll'
+import { Link, navigate as routeTo, usePathname } from '../../lib/router'
+import { useAuth } from '../../auth/AuthProvider'
+import { AuthDialog } from '../../auth/AuthDialog'
 import { Logo } from '../brand/Logo'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
@@ -34,11 +37,40 @@ export function LanguageToggle({ className = '' }: { className?: string }) {
   )
 }
 
+/** "Log in" when signed out; "My appointments" (customers) or "Staff dashboard" (staff) when signed in. */
+function AccountEntry({ onLogIn, compact = false }: { onLogIn: () => void; compact?: boolean }) {
+  const { t } = useI18n()
+  const { status, user } = useAuth()
+  if (status !== 'ready') return null
+  const cls = compact
+    ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-charcoal hover:bg-blush-soft'
+    : 'inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[0.95rem] text-charcoal transition-colors duration-200 hover:bg-blush-soft'
+  if (!user) {
+    return (
+      <button type="button" onClick={onLogIn} className={cls} aria-label={compact ? t.nav.login : undefined} aria-haspopup="dialog">
+        <Icon name="user" size={compact ? 22 : 18} />
+        {!compact && t.nav.login}
+      </button>
+    )
+  }
+  const staff = user.role !== 'customer'
+  const label = staff ? t.nav.dashboard : t.nav.account
+  return (
+    <Link to={staff ? '/admin' : '/account'} className={cls} aria-label={compact ? label : undefined}>
+      <Icon name="user" size={compact ? 22 : 18} />
+      {!compact && label}
+    </Link>
+  )
+}
+
 export function Header() {
   const { t, pick } = useI18n()
   const { open } = useRequest()
+  const { status, user } = useAuth()
+  const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [authOpen, setAuthOpen] = useState(false)
   const menuHeading = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
@@ -76,7 +108,8 @@ export function Header() {
           className="-ms-1 flex shrink-0 items-center rounded-md p-1"
           onClick={(e) => {
             e.preventDefault()
-            window.scrollTo({ top: 0 })
+            if (pathname === '/') window.scrollTo({ top: 0 })
+            else routeTo('/')
           }}
         >
           <Logo className="h-9 w-auto sm:h-10" alt="" />
@@ -103,6 +136,12 @@ export function Header() {
 
         <div className="flex items-center gap-1 sm:gap-2">
           <LanguageToggle />
+          <div className="hidden xl:block">
+            <AccountEntry onLogIn={() => setAuthOpen(true)} />
+          </div>
+          <div className="xl:hidden">
+            <AccountEntry compact onLogIn={() => setAuthOpen(true)} />
+          </div>
           <div className="hidden md:block">
             <Button onClick={() => open()}>{t.cta.request}</Button>
           </div>
@@ -172,6 +211,32 @@ export function Header() {
             >
               {t.cta.request}
             </Button>
+            {status === 'ready' && (
+              <div className="mt-3">
+                {user ? (
+                  <Link
+                    to={user.role === 'customer' ? '/account' : '/admin'}
+                    onClick={() => setMenuOpen(false)}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-charcoal/70 text-[0.95rem] font-medium"
+                  >
+                    <Icon name="user" size={18} />
+                    {user.role === 'customer' ? t.nav.account : t.nav.dashboard}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      afterDialogClose(() => setAuthOpen(true))
+                    }}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-charcoal/70 text-[0.95rem] font-medium"
+                  >
+                    <Icon name="user" size={18} />
+                    {t.nav.login}
+                  </button>
+                )}
+              </div>
+            )}
             <ul className="mt-8 grid gap-1 text-sm">
               {branches.map((b) => (
                 <li key={b.id}>
@@ -199,6 +264,7 @@ export function Header() {
           </nav>
         </div>
       </Modal>
+      <AuthDialog open={authOpen} onClose={() => setAuthOpen(false)} />
     </header>
   )
 }

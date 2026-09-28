@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { validateStep } from '../../booking/validation'
@@ -17,17 +17,22 @@ import { StepDetails } from './StepDetails'
 import { StepReview, type Outcome } from './StepReview'
 
 /** Field that receives focus when a step fails validation, in on-screen order. */
-const FIELD_ORDER: (keyof RequestDraft)[] = ['branchId', 'serviceIds', 'date', 'time', 'eventDate', 'groupSize', 'firstName', 'phone']
+const FIELD_ORDER: (keyof RequestDraft | 'account')[] = ['branchId', 'serviceIds', 'date', 'time', 'eventDate', 'groupSize', 'account', 'firstName', 'phone']
 
 export function RequestDialog() {
   const { t, lang, pick } = useI18n()
-  const { draft, update, isOpen, close, step, setStep, reset } = useRequest()
+  const { draft, contact, update, isOpen, close, step, setStep, reset } = useRequest()
   const announce = useAnnounce()
   const [errors, setErrors] = useState<FieldErrors>({})
   const [outcome, setOutcome] = useState<Outcome | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const firstRender = useRef(true)
+  const previousStep = useRef(step)
+  const direction = step >= previousStep.current ? 'forward' : 'back'
+  useEffect(() => {
+    previousStep.current = step
+  }, [step])
   const stepId = STEPS[step]
   const titles = [
     t.request.branch.title,
@@ -57,12 +62,17 @@ export function RequestDialog() {
   }, [step, isOpen])
 
   // Re-word any visible errors when the language changes (and only then, so typing never re-flags a field).
-  const latest = useRef({ stepId, draft, t })
-  latest.current = { stepId, draft, t }
+  const latest = useRef({ stepId, draft, t, contact })
+  latest.current = { stepId, draft, t, contact }
   useEffect(() => {
-    const { stepId: id, draft: d, t: strings } = latest.current
-    setErrors((current) => (Object.keys(current).length ? validateStep(id, d, strings) : current))
+    const { stepId: id, draft: d, t: strings, contact: c } = latest.current
+    setErrors((current) => (Object.keys(current).length ? validateStep(id, d, strings, c) : current))
   }, [lang])
+
+  // Signing in on the details step clears the "log in to continue" message.
+  useEffect(() => {
+    if (contact.signedIn) setErrors((current) => (current.account ? {} : current))
+  }, [contact.signedIn])
 
   const set = useCallback(
     <K extends keyof RequestDraft>(field: K, value: RequestDraft[K]) => {
@@ -87,8 +97,8 @@ export function RequestDialog() {
   )
 
   const goNext = () => {
-    const found = validateStep(stepId, draft, t)
-    const keys = Object.keys(found) as (keyof RequestDraft)[]
+    const found = validateStep(stepId, draft, t, contact)
+    const keys = Object.keys(found) as (keyof RequestDraft | 'account')[]
     if (keys.length > 0) {
       setErrors(found)
       announce(t.request.errors.summary(keys.length))
@@ -112,6 +122,25 @@ export function RequestDialog() {
     setStep(index)
   }
 
+  // A sent request is finished: closing clears it so the next visit starts fresh.
+  const finish = () => {
+    if (outcome?.kind === 'received') {
+      reset()
+      setOutcome(null)
+    }
+    close()
+  }
+
+  // Enter in a text field moves to the next step (sign-in forms inside the step handle their own Enter).
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (e.key !== 'Enter' || stepId === 'review' || target.closest('form')) return
+    if (target instanceof HTMLInputElement && !['checkbox', 'radio', 'button', 'submit'].includes(target.type)) {
+      e.preventDefault()
+      goNext()
+    }
+  }
+
   const branch = getBranch(draft.branchId)
   const look = findLook(draft.lookRef)
   const showCarried = step > 0 && (branch || look || draft.bridal)
@@ -119,20 +148,13 @@ export function RequestDialog() {
   return (
     <Modal
       open={isOpen}
-      onClose={close}
+      onClose={finish}
       labelledBy="request-title"
       describedBy="request-step-title"
       initialFocus={headingRef}
       className="sheet m-0 h-[100dvh] w-full bg-ivory p-0 md:m-auto md:h-[min(50rem,calc(100dvh-4rem))] md:w-[min(42rem,calc(100vw-4rem))] md:rounded-[1.5rem]"
     >
-      <form
-        noValidate
-        className="flex h-full flex-col"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (stepId !== 'review') goNext()
-        }}
-      >
+      <div className="flex h-full flex-col" onKeyDown={onKeyDown}>
         <header className="shrink-0 border-b border-line px-5 pb-4 pt-3 sm:px-8 sm:pt-5">
           <div className="flex items-center justify-between gap-3">
             <h2 id="request-title" className="eyebrow">
@@ -142,7 +164,7 @@ export function RequestDialog() {
               <LanguageToggle />
               <button
                 type="button"
-                onClick={close}
+                onClick={finish}
                 aria-label={t.request.closeRequest}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full hover:bg-blush-soft"
               >
@@ -153,7 +175,13 @@ export function RequestDialog() {
           <ol className="mt-3 grid grid-cols-5 gap-1.5" aria-label={t.request.stepOf(step + 1, STEPS.length)}>
             {STEPS.map((s, i) => (
               <li key={s} aria-current={i === step ? 'step' : undefined}>
-                <span className={`block h-1 rounded-full transition-colors duration-300 ${i <= step ? 'bg-charcoal' : 'bg-line'}`} />
+                <span className="block h-1 overflow-hidden rounded-full bg-line">
+                  <span
+                    className={`block h-full origin-left rounded-full bg-charcoal transition-transform duration-500 ease-[var(--ease-out-soft)] rtl:origin-right ${
+                      i <= step ? 'scale-x-100' : 'scale-x-0'
+                    }`}
+                  />
+                </span>
                 <span className={`mt-1.5 hidden text-xs sm:block ${i === step ? 'text-charcoal' : 'text-taupe-ink'}`}>
                   {t.request.steps[i]}
                 </span>
@@ -199,7 +227,7 @@ export function RequestDialog() {
             </div>
           )}
 
-          <div className="mt-6">
+          <div key={step} className={`mt-6 step-enter step-enter-${direction}`}>
             {stepId === 'branch' && <StepBranch draft={draft} set={set} errors={errors} />}
             {stepId === 'services' && <StepServices draft={draft} set={set} errors={errors} />}
             {stepId === 'when' && <StepWhen draft={draft} set={set} errors={errors} />}
@@ -210,7 +238,7 @@ export function RequestDialog() {
                 goToStep={goToStep}
                 outcome={outcome}
                 setOutcome={setOutcome}
-                onDone={close}
+                onDone={finish}
                 onNewRequest={() => {
                   reset()
                   setOutcome(null)
@@ -233,15 +261,15 @@ export function RequestDialog() {
             ) : (
               <span />
             )}
-            {stepId !== 'review' && (
-              <Button type="submit" size="md" className="min-w-36">
+            {stepId !== 'review' && !(stepId === 'details' && contact.mode === 'account' && !contact.signedIn) && (
+              <Button size="md" className="min-w-36" onClick={goNext}>
                 {t.common.continue}
                 <Icon name="arrow" size={18} className="rtl:-scale-x-100" />
               </Button>
             )}
           </footer>
         )}
-      </form>
+      </div>
     </Modal>
   )
 }

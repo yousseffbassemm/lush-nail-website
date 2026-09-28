@@ -1,11 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { sessionStore } from '../lib/storage'
 import { useI18n } from '../i18n/I18nProvider'
-import { firstIncompleteStep } from './validation'
+import { useAuth } from '../auth/AuthProvider'
+import { firstIncompleteStep, type ContactContext } from './validation'
 import { emptyDraft, STEPS, type RequestDraft, type RequestSeed } from './types'
 
 interface RequestValue {
   draft: RequestDraft
+  /** Whether the visitor sends requests through their account or by message/phone. */
+  contact: ContactContext
   update: (patch: Partial<RequestDraft>) => void
   toggleService: (id: string) => boolean
   isOpen: boolean
@@ -32,6 +35,8 @@ function loadDraft(): RequestDraft {
 
 export function RequestProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n()
+  const { status, user } = useAuth()
+  const contact = useMemo(() => ({ mode: status === 'offline' ? ('manual' as const) : ('account' as const), signedIn: Boolean(user) }), [status, user])
   const [draft, setDraft] = useState<RequestDraft>(loadDraft)
   const [isOpen, setOpen] = useState(false)
   const [step, setStep] = useState(0)
@@ -68,10 +73,10 @@ export function RequestProvider({ children }: { children: ReactNode }) {
       }
       setDraft(next)
       // Start at the first step that still needs an answer; everything carried in stays visible there.
-      setStep(Math.min(firstIncompleteStep(next, t), STEPS.length - 1))
+      setStep(Math.min(firstIncompleteStep(next, t, contact), STEPS.length - 1))
       setOpen(true)
     },
-    [t],
+    [t, contact],
   )
 
   const close = useCallback(() => setOpen(false), [])
@@ -82,8 +87,8 @@ export function RequestProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ draft, update, toggleService, isOpen, step, setStep, open, close, reset }),
-    [draft, update, toggleService, isOpen, step, open, close, reset],
+    () => ({ draft, contact, update, toggleService, isOpen, step, setStep, open, close, reset }),
+    [draft, contact, update, toggleService, isOpen, step, open, close, reset],
   )
 
   return <RequestContext.Provider value={value}>{children}</RequestContext.Provider>

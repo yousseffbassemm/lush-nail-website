@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { branches } from '../../content/site'
@@ -11,10 +12,12 @@ export function Locations() {
   return (
     <section id="locations" aria-labelledby="locations-title" className="py-20 sm:py-24 lg:py-32">
       <div className="container-page">
-        <p className="eyebrow">{t.locations.eyebrow}</p>
-        <h2 id="locations-title" className="display mt-4 text-[clamp(2.75rem,6vw,4.75rem)]">
-          {t.locations.title}
-        </h2>
+        <div className="reveal">
+          <p className="eyebrow">{t.locations.eyebrow}</p>
+          <h2 id="locations-title" className="display mt-4 text-[clamp(2.75rem,6vw,4.75rem)]">
+            {t.locations.title}
+          </h2>
+        </div>
 
         <div className="mt-12 grid border-t border-line md:grid-cols-2">
           {branches.map((b, i) => {
@@ -23,7 +26,8 @@ export function Locations() {
               <article
                 key={b.id}
                 aria-labelledby={`branch-${b.id}`}
-                className={`flex flex-col py-10 md:py-12 ${i === 0 ? 'md:pe-12 lg:pe-20' : 'border-t border-line md:border-t-0 md:border-s md:ps-12 lg:ps-20'}`}
+                style={{ '--i': i + 1 } as CSSProperties}
+                className={`reveal flex flex-col py-10 md:py-12 ${i === 0 ? 'md:pe-12 lg:pe-20' : 'border-t border-line md:border-t-0 md:border-s md:ps-12 lg:ps-20'}`}
               >
                 <h3 id={`branch-${b.id}`} className="display text-[clamp(2.5rem,5vw,3.75rem)]">
                   {name}

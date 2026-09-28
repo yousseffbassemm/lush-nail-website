@@ -1,31 +1,42 @@
 /**
- * Connection point for a real booking system (a scheduling tool, CRM or the salon's own backend).
+ * Sends a request to the Lush API (server/), which stores it for the branch to confirm in /admin.
  *
- * Nothing is connected today. With `appointmentProvider` set to null, the review step offers the
- * contact options that genuinely work — copy, call, Instagram, and WhatsApp for verified branches —
- * and never claims that a request was sent or an appointment booked.
- *
- * To connect a system, implement AppointmentProvider and export it below. The review step then shows
- * "Send request" and reports the provider's real outcome. A provider must resolve `received` only once
- * the system has stored the request; confirmation still comes from the branch.
+ * The visitor must be signed in. If the API can't be reached at all, the review step falls back to
+ * copy / call / WhatsApp (for verified branches) and never claims anything was sent.
  */
-import type { RequestDraft } from './types'
+import { api, type AppointmentRequest } from '../lib/api'
 import type { Lang } from '../i18n/types'
+import type { RequestDraft } from './types'
+import { normalizePhone } from './validation'
 
-export interface AppointmentSubmission {
-  draft: RequestDraft
-  /** Language the visitor used, so the branch can reply in kind. */
-  lang: Lang
-  /** The same plain-text summary the visitor saw. */
-  message: string
-  timeZone: 'Africa/Cairo'
+export async function sendRequest(draft: RequestDraft, lang: Lang) {
+  const { request } = await api<{ request: AppointmentRequest }>('/requests', {
+    method: 'POST',
+    body: {
+      branchId: draft.branchId,
+      serviceIds: draft.serviceIds,
+      helpMeChoose: draft.helpMeChoose,
+      lookRef: draft.lookRef,
+      bridal: draft.bridal,
+      date: draft.date,
+      time: draft.flexibleTime ? null : draft.time,
+      eventDate: draft.bridal ? draft.eventDate || null : null,
+      groupSize: draft.bridal && draft.groupSize ? Number(normalizePhone(draft.groupSize)) : null,
+      notes: draft.notes,
+      lang,
+    },
+  })
+  return request
 }
 
-export type SubmitResult = { status: 'received'; reference: string } | { status: 'failed'; reason?: string }
-
-export interface AppointmentProvider {
-  name: string
-  submit: (submission: AppointmentSubmission) => Promise<SubmitResult>
+/** Which step of the flow fixes a field the server rejected. */
+export const FIELD_STEP: Record<string, number> = {
+  branchId: 0,
+  serviceIds: 1,
+  lookRef: 1,
+  date: 2,
+  time: 2,
+  eventDate: 2,
+  groupSize: 2,
+  notes: 3,
 }
-
-export const appointmentProvider: AppointmentProvider | null = null

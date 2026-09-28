@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useI18n } from '../../i18n/I18nProvider'
 import { Icon } from '../ui/Icon'
 
@@ -6,15 +7,15 @@ export function Faq() {
   return (
     <section aria-labelledby="faq-title" className="border-t border-line bg-paper py-20 sm:py-24 lg:py-32">
       <div className="container-page grid gap-10 lg:grid-cols-12">
-        <div className="lg:col-span-4">
+        <div className="reveal lg:col-span-4">
           <p className="eyebrow">{t.faq.eyebrow}</p>
           <h2 id="faq-title" className="display mt-4 text-[clamp(2.5rem,5vw,4rem)]">
             {t.faq.title}
           </h2>
         </div>
         <div className="lg:col-span-7 lg:col-start-6">
-          {t.faq.items.map((item) => (
-            <details key={item.q} className="group border-b border-line first:border-t">
+          {t.faq.items.map((item, i) => (
+            <details key={item.q} className="reveal group border-b border-line first:border-t" style={{ '--i': i } as CSSProperties}>
               <summary className="flex min-h-16 list-none items-center justify-between gap-6 py-4 text-start text-lg text-charcoal [&::-webkit-details-marker]:hidden">
                 <span>{item.q}</span>
                 <Icon

@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from 'react'
+import { useRef, type CSSProperties, type KeyboardEvent } from 'react'
 import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { categories, type Modifier, type Service } from '../../content/services'
@@ -24,7 +24,7 @@ function useModifierText() {
   }
 }
 
-function ServiceRow({ service, showDuration }: { service: Service; showDuration: boolean }) {
+function ServiceRow({ service, showDuration, index }: { service: Service; showDuration: boolean; index: number }) {
   const { t, pick, price } = useI18n()
   const { draft, toggleService } = useRequest()
   const announce = useAnnounce()
@@ -34,7 +34,7 @@ function ServiceRow({ service, showDuration }: { service: Service; showDuration:
   const includes = service.includes ? pick(service.includes) : null
 
   return (
-    <li>
+    <li className="row-in" style={{ '--i': index } as CSSProperties}>
       <button
         type="button"
         aria-pressed={selected}
@@ -70,8 +70,9 @@ function ServiceRow({ service, showDuration }: { service: Service; showDuration:
           )}
         </span>
         <span
+          key={selected ? 'on' : 'off'}
           aria-hidden="true"
-          className={`mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors duration-200 ${
+          className={`${selected ? 'check-pop ' : ''}mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors duration-200 ${
             selected
               ? 'border-charcoal bg-charcoal text-ivory'
               : 'border-line-strong text-taupe group-hover:border-charcoal group-hover:text-charcoal'
@@ -110,7 +111,7 @@ export function ServiceMenu() {
   return (
     <section id="services" aria-labelledby="services-title" className="scroll-mt-4 py-20 sm:py-24 lg:py-32">
       <div className="container-page">
-        <div className="grid gap-6 lg:grid-cols-12 lg:items-end">
+        <div className="reveal grid gap-6 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-7">
             <p className="eyebrow">{t.menu.eyebrow}</p>
             <h2 id="services-title" className="display mt-4 text-[clamp(2.75rem,6vw,4.75rem)]">
@@ -153,10 +154,8 @@ export function ServiceMenu() {
                 tabIndex={selected ? 0 : -1}
                 onClick={() => setActive(c.id)}
                 onKeyDown={(e) => onTabKey(e, i)}
-                className={`relative min-h-12 shrink-0 px-4 pb-3 pt-2 text-[1.02rem] transition-colors duration-200 after:absolute after:inset-x-3 after:-bottom-px after:h-0.5 after:rounded-full after:transition-colors after:duration-200 ${
-                  selected
-                    ? 'font-medium text-charcoal after:bg-gold'
-                    : 'text-taupe-ink after:bg-transparent hover:text-charcoal'
+                className={`relative min-h-12 shrink-0 px-4 pb-3 pt-2 text-[1.02rem] transition-colors duration-200 after:absolute after:inset-x-3 after:-bottom-px after:h-0.5 after:rounded-full after:bg-gold after:transition-transform after:duration-300 after:ease-[var(--ease-out-soft)] ${
+                  selected ? 'font-medium text-charcoal after:scale-x-100' : 'text-taupe-ink after:scale-x-0 hover:text-charcoal hover:after:scale-x-50'
                 }`}
               >
                 {pick(c.title)}
@@ -173,7 +172,7 @@ export function ServiceMenu() {
           className="mt-8 rounded-sm focus-visible:outline-offset-8"
         >
           {/* Sections flow into balanced columns, like a printed menu; a section never splits. */}
-          <div className={category.sections.length > 1 ? 'lg:columns-2 lg:gap-16' : 'max-w-3xl'}>
+          <div key={category.id} className={category.sections.length > 1 ? 'lg:columns-2 lg:gap-16' : 'max-w-3xl'}>
             {category.sections.map((section) => (
               <div key={section.id} className="mb-12 min-w-0 break-inside-avoid last:mb-0">
                 <div className="flex items-baseline justify-between gap-4 border-b border-line px-3 pb-3 sm:px-4">
@@ -192,8 +191,8 @@ export function ServiceMenu() {
                   )}
                 </div>
                 <ul className="mt-2 grid gap-0.5">
-                  {section.services.map((s) => (
-                    <ServiceRow key={s.id} service={s} showDuration={Boolean(section.showsDuration)} />
+                  {section.services.map((s, i) => (
+                    <ServiceRow key={s.id} service={s} showDuration={Boolean(section.showsDuration)} index={i} />
                   ))}
                 </ul>
               </div>
@@ -205,7 +204,7 @@ export function ServiceMenu() {
           <p className="text-sm text-taupe-ink">{t.menu.confirmNote}</p>
           {count > 0 && (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-charcoal" aria-live="off">
+              <span key={count} className="bump text-sm text-charcoal" aria-live="off">
                 {t.cta.selectedCount(count)}
               </span>
               <div className="hidden md:block">

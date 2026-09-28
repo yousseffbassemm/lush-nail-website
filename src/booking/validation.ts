@@ -21,7 +21,37 @@ export function isValidPhone(raw: string) {
   return false
 }
 
-export function validateStep(step: StepId, d: RequestDraft, t: Strings, now = nowInCairo()): FieldErrors {
+/**
+ * One canonical form per number (E.164), so "010 1234 5678", "+20 10 1234 5678" and
+ * "٠١٠١٢٣٤٥٦٧٨" all identify the same account. Returns null for numbers that aren't valid.
+ */
+export function toE164(raw: string): string | null {
+  if (!isValidPhone(raw)) return null
+  const phone = normalizePhone(raw)
+  if (phone.startsWith('01')) return `+2${phone}`
+  if (phone.startsWith('00')) return `+${phone.slice(2)}`
+  return phone
+}
+
+/** Local display format for Egyptian numbers ("010 1234 5678"); international numbers as stored. */
+export function formatPhone(e164: string) {
+  const m = /^\+20(1\d)(\d{4})(\d{4})$/.exec(e164)
+  return m ? `0${m[1]} ${m[2]} ${m[3]}` : e164
+}
+
+/**
+ * How the visitor identifies themselves:
+ * - 'account': signed in to a Lush account (the normal case when the API is reachable);
+ * - 'manual': no API available, so name and number are typed into the request itself.
+ */
+export interface ContactContext {
+  mode: 'account' | 'manual'
+  signedIn: boolean
+}
+
+const MANUAL: ContactContext = { mode: 'manual', signedIn: false }
+
+export function validateStep(step: StepId, d: RequestDraft, t: Strings, contact: ContactContext = MANUAL, now = nowInCairo()): FieldErrors {
   const e = t.request.errors
   const errors: FieldErrors = {}
 
@@ -56,6 +86,10 @@ export function validateStep(step: StepId, d: RequestDraft, t: Strings, now = no
     }
 
     case 'details':
+      if (contact.mode === 'account') {
+        if (!contact.signedIn) errors.account = e.account
+        break
+      }
       if (!d.firstName.trim()) errors.firstName = e.firstName
       if (!d.phone.trim()) errors.phone = e.phone
       else if (!isValidPhone(d.phone)) errors.phone = e.phoneFormat
@@ -68,7 +102,7 @@ export function validateStep(step: StepId, d: RequestDraft, t: Strings, now = no
 }
 
 /** The first step that still needs input, used to resume a request where it makes sense. */
-export function firstIncompleteStep(d: RequestDraft, t: Strings): number {
-  const index = STEPS.findIndex((step) => Object.keys(validateStep(step, d, t)).length > 0)
+export function firstIncompleteStep(d: RequestDraft, t: Strings, contact: ContactContext = MANUAL): number {
+  const index = STEPS.findIndex((step) => Object.keys(validateStep(step, d, t, contact)).length > 0)
   return index === -1 ? STEPS.length - 1 : index
 }

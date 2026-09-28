@@ -17,6 +17,14 @@ const paths = {
   calendar: 'M4 6h16v14H4zM4 10h16M8 3v5M16 3v5',
   external: 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6',
   sparkle: 'M12 3v5M12 16v5M3 12h5M16 12h5',
+  eye: 'M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12zM12 14.8a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6z',
+  eyeOff: 'M4 4l16 16M9.9 5.8A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.9 3.7M6.3 7.7A15.6 15.6 0 0 0 2.5 12s3.5 6.5 9.5 6.5a9.6 9.6 0 0 0 4-.9M10 10.1a2.8 2.8 0 0 0 3.9 3.9',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.5 7.5 0 0 1 15 0',
+  logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
+  refresh: 'M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6',
+  search: 'M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM20 20l-4.8-4.8',
+  note: 'M5 4h14v16H5zM8 9h8M8 13h8M8 17h5',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
 } as const
 
 export type IconName = keyof typeof paths | 'instagram' | 'whatsapp'

@@ -56,3 +56,27 @@ export function formatTime(hhmm: string, lang: Lang) {
     timeZone: 'UTC',
   }).format(date)
 }
+
+/** A moment (ISO timestamp) shown as Cairo date and time, e.g. "28 Sep, 4:32 pm". */
+export function formatCairoDateTime(iso: string, lang: Lang) {
+  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
+    timeZone: site.timeZone,
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(iso))
+}
+
+/** A short Cairo calendar date, e.g. "Thu 2 Oct". */
+export function formatCairoDateShort(isoDate: string, lang: Lang) {
+  if (!isIsoDate(isoDate)) return isoDate
+  const [y, m, d] = isoDate.split('-').map(Number)
+  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(y, m - 1, d, 12)))
+}

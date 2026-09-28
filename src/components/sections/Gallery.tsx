@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { looks, type Finish, type Look } from '../../content/looks'
@@ -107,7 +107,7 @@ function LookViewer({ index, onClose, onNavigate }: { index: number | null; onCl
       {current && index !== null && (
         <div className="flex h-full flex-col md:grid md:h-[min(40rem,calc(100dvh-4rem))] md:grid-cols-[1.05fr_1fr]" onKeyDown={onKeyDown}>
           <div className="relative h-[46dvh] shrink-0 overflow-hidden md:h-full">
-            <LookImage look={current} layout="portrait" index={index} className="h-full w-full" label={pick(current.name)} />
+            <LookImage key={current.ref} look={current} layout="portrait" index={index} className="fade-swap h-full w-full" label={pick(current.name)} />
           </div>
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6 sm:p-8">
             <div className="flex items-center justify-between gap-4">
@@ -123,7 +123,7 @@ function LookViewer({ index, onClose, onNavigate }: { index: number | null; onCl
                 <Icon name="close" size={22} />
               </button>
             </div>
-            <h2 id="look-title" ref={heading} tabIndex={-1} className="display mt-3 text-[2.75rem]">
+            <h2 id="look-title" key={current.ref} ref={heading} tabIndex={-1} className="fade-swap display mt-3 text-[2.75rem]">
               {pick(current.name)}
             </h2>
             <p id="look-description" className="mt-3 text-taupe-ink">
@@ -193,7 +193,7 @@ export function Gallery() {
   return (
     <section id="work" aria-labelledby="work-title" className="bg-paper py-20 sm:py-24 lg:py-32">
       <div className="container-page">
-        <div className="grid gap-6 lg:grid-cols-12 lg:items-end">
+        <div className="reveal grid gap-6 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-6">
             <p className="eyebrow">{t.work.eyebrow}</p>
             <h2 id="work-title" className="display mt-4 text-[clamp(2.75rem,6vw,4.75rem)]">
@@ -226,15 +226,15 @@ export function Gallery() {
             const services = lookServices(look)
             const lead = services[0]
             return (
-              <li key={look.ref} className={TILE_CLASS[look.size]}>
+              <li key={look.ref} className={`reveal ${TILE_CLASS[look.size]}`} style={{ '--i': i % 4 } as CSSProperties}>
                 <button
                   type="button"
                   onClick={() => setViewing(i)}
                   aria-label={t.work.open(pick(look.name))}
                   aria-haspopup="dialog"
-                  className="group flex h-full w-full flex-col overflow-hidden rounded-[1.25rem] bg-ivory text-start"
+                  className="tile-lift group flex h-full w-full flex-col overflow-hidden rounded-[1.25rem] bg-ivory text-start"
                 >
-                  <span className="relative block min-h-0 flex-1 overflow-hidden">
+                  <span className="tile-sheen relative block min-h-0 flex-1 overflow-hidden">
                     <LookImage
                       look={look}
                       layout={TILE_LAYOUT[look.size]}

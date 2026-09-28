@@ -41,7 +41,9 @@ export function Modal({ open, onClose, labelledBy, describedBy, initialFocus, cl
       if (openCount === 0) document.documentElement.style.overflow = ''
       const target = returnTo.current
       returnTo.current = null
+      // If whatever opened the dialog has gone (e.g. a list row that changed), land on the main content.
       if (target && document.contains(target)) target.focus({ preventScroll: true })
+      else document.querySelector<HTMLElement>('main')?.focus({ preventScroll: true })
     }
   }, [open, initialFocus])
 

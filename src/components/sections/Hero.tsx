@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { branches } from '../../content/site'
@@ -9,6 +10,8 @@ import { SpaPlate } from '../art/SpaPlate'
 import { Button, LinkButton } from '../ui/Button'
 import { Icon } from '../ui/Icon'
 
+const seq = (i: number) => ({ '--i': i }) as CSSProperties
+
 export function Hero() {
   const { t, pick } = useI18n()
   const { open } = useRequest()
@@ -17,21 +20,30 @@ export function Hero() {
     <section id="top" aria-labelledby="hero-title" className="relative isolate overflow-hidden">
       {/* The Lush field: full-bleed behind the visual, running off the page edge. */}
       <div className="absolute inset-x-0 bottom-0 -z-10 h-[23rem] overflow-hidden sm:h-[30rem] lg:inset-y-0 lg:start-auto lg:end-0 lg:h-auto lg:w-[47%] lg:rounded-es-[3rem]">
-        <LushField className="h-full w-full" variant="b" />
+        <LushField className="field-in h-full w-full" variant="b" />
       </div>
 
       <div className="container-page grid items-center gap-x-10 lg:min-h-[min(calc(100svh-var(--header-h)),56rem)] lg:grid-cols-12">
-        <div className="pb-10 pt-8 sm:pt-14 lg:col-span-6 lg:py-24 xl:col-span-6">
-          <p className="eyebrow">{t.hero.eyebrow}</p>
+        <div className="hero-seq pb-10 pt-8 sm:pt-14 lg:col-span-6 lg:py-24 xl:col-span-6">
+          <p className="eyebrow" style={seq(0)}>
+            {t.hero.eyebrow}
+          </p>
           <h1
             id="hero-title"
             className="display mt-5 text-[clamp(3rem,11.5vw,4.25rem)] sm:text-[clamp(4rem,8vw,6.25rem)] lg:text-[clamp(4.5rem,6.4vw,6.75rem)]"
+            style={{ animation: 'none' }}
           >
-            <span className="block">{t.hero.titleA}</span>
-            <span className="block italic text-rose-ink">{t.hero.titleB}</span>
+            <span className="hero-line block" style={seq(0)}>
+              {t.hero.titleA}
+            </span>
+            <span className="hero-line block italic text-rose-ink" style={seq(1)}>
+              {t.hero.titleB}
+            </span>
           </h1>
-          <p className="mt-6 max-w-[30rem] text-lg leading-relaxed text-taupe-ink sm:text-xl">{t.hero.lede}</p>
-          <div className="mt-8 flex flex-col gap-3 xs:flex-row xs:flex-wrap">
+          <p className="mt-6 max-w-[30rem] text-lg leading-relaxed text-taupe-ink sm:text-xl" style={seq(4)}>
+            {t.hero.lede}
+          </p>
+          <div className="mt-8 flex flex-col gap-3 xs:flex-row xs:flex-wrap" style={seq(5)}>
             <Button size="lg" onClick={() => open()}>
               {t.cta.request}
             </Button>
@@ -48,7 +60,7 @@ export function Hero() {
             </LinkButton>
           </div>
 
-          <ul className="mt-10 grid max-w-[34rem] gap-x-8 gap-y-3 border-t border-line pt-5 text-sm sm:grid-cols-2">
+          <ul className="mt-10 grid max-w-[34rem] gap-x-8 gap-y-3 border-t border-line pt-5 text-sm sm:grid-cols-2" style={seq(6)}>
             {branches.map((b) => (
               <li key={b.id}>
                 <a
@@ -74,8 +86,8 @@ export function Hero() {
 
         <div className="relative pb-12 lg:col-span-6 lg:py-16 xl:col-span-6">
           <figure className="relative mx-auto w-[min(78%,26rem)] sm:w-[min(62%,28rem)] lg:ms-[14%] lg:w-[min(76%,30rem)]">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.75rem] bg-paper p-2.5 shadow-[0_30px_60px_-30px_rgb(125_74_63/0.45)] sm:p-3">
-              <div className="h-full w-full overflow-hidden rounded-[1.25rem]">
+            <div className="hero-card relative aspect-[4/5] overflow-hidden rounded-[1.75rem] bg-paper p-2.5 shadow-[0_30px_60px_-30px_rgb(125_74_63/0.45)] sm:p-3">
+              <div className="sheen relative h-full w-full overflow-hidden rounded-[1.25rem]">
                 {media.heroManicure ? (
                   <img
                     src={media.heroManicure.src}
@@ -94,11 +106,12 @@ export function Hero() {
                     tone="cream"
                     className="h-full w-full"
                     label={t.hero.plateAlt}
+                    animateIn
                   />
                 )}
               </div>
             </div>
-            <div className="absolute -bottom-8 -start-[14%] w-[46%] rounded-full bg-paper p-2 shadow-[0_24px_48px_-24px_rgb(125_74_63/0.5)] sm:-start-[18%] sm:w-[44%] lg:-bottom-10 lg:-start-[26%]">
+            <div className="spa-in absolute -bottom-8 -start-[14%] w-[46%] rounded-full bg-paper p-2 shadow-[0_24px_48px_-24px_rgb(125_74_63/0.5)] sm:-start-[18%] sm:w-[44%] lg:-bottom-10 lg:-start-[26%]">
               <div className="aspect-square overflow-hidden rounded-full">
                 {media.heroSpa ? (
                   <img

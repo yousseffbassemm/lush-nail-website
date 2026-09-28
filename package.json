@@ -3,28 +3,42 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Website prototype for Lush Nail Salon & Spa, Cairo — service menu, style gallery and appointment requests.",
+  "description": "Website for Lush Nail Salon & Spa, Cairo: service menu, style gallery, customer accounts, appointment requests and a staff dashboard.",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite",
+    "dev:api": "tsx watch server/index.ts",
+    "build": "npm run typecheck && vite build",
+    "start": "tsx server/index.ts --production",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.server.json",
+    "test": "tsx --test server/test/*.test.ts",
+    "create-admin": "tsx server/cli/create-admin.ts",
+    "seed:demo": "tsx server/cli/seed-demo.ts"
   },
   "dependencies": {
     "@fontsource-variable/cormorant-garamond": "^5.3.0",
     "@fontsource-variable/jost": "^5.3.0",
     "@fontsource/noto-naskh-arabic": "^5.3.0",
     "@fontsource/noto-sans-arabic": "^5.3.0",
+    "@hono/node-server": "^2.1.1",
+    "hono": "^4.13.10",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^22.20.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
     "vite": "^8.3.1"
+  },
+  "engines": {
+    "node": ">=22.18"
   }
 }

@@ -1,39 +1,83 @@
-# Lush Nail Salon & Spa — website prototype
+# Lush Nail Salon & Spa — website
 
-A bilingual (English / Egyptian Arabic) website for Lush Nail Salon & Spa, Cairo: service menu with real prices, an illustrated style gallery, bridal packages, branch details and a five-step appointment request flow.
+A bilingual (English / Egyptian Arabic) website for Lush Nail Salon & Spa, Cairo. It has:
 
-This is a **private client presentation**. The page carries `noindex, nofollow` until the owner approves publication.
+- a service menu with real prices;
+- an illustrated style gallery and bridal packages;
+- **customer accounts**: sign up the first time, then log in;
+- a five-step appointment request flow that sends requests to the branch;
+- a **staff dashboard** where branches confirm, decline and track every appointment and enquiry.
+
+This is a **private client presentation**. The site sends `noindex, nofollow` until the owner approves publication. `/admin` is always `noindex`.
 
 ![Desktop hero](docs/previews/desktop-hero-en.jpg)
 
-| Mobile | Arabic | Request flow |
+| Customer on mobile | Sign-up inside the request | Staff dashboard |
 | --- | --- | --- |
-| ![](docs/previews/mobile-hero-en.jpg) | ![](docs/previews/mobile-hero-ar.jpg) | ![](docs/previews/mobile-request-en.jpg) |
+| ![](docs/previews/mobile-account-en.jpg) | ![](docs/previews/mobile-signup-in-flow.jpg) | ![](docs/previews/admin-requests.jpg) |
 
-More previews are in [`docs/previews`](docs/previews).
+More previews are in [`docs/previews`](docs/previews), including Arabic, the request drawer and the hero entrance frames.
 
 ## Run it
 
+Requires **Node.js 22.18 or newer** (24 LTS recommended). The database is SQLite through Node's built-in `node:sqlite`, so there's nothing else to install.
+
 ```bash
 npm install
-npm run dev        # http://localhost:5173  (add ?lang=ar for Arabic)
-npm run build      # type-checks, then builds to dist/
-npm run preview    # serves the production build
+npm run seed:demo    # optional: fictional demo accounts and requests (development only)
+npm run dev          # site on http://localhost:5173, API on :8787 (add ?lang=ar for Arabic)
 ```
 
-Stack: React 19, TypeScript, Tailwind CSS 4, Vite. Fonts are self-hosted (no third-party requests).
+Demo sign-ins created by `seed:demo`:
 
-## Visual direction
+| Role | Mobile | Password |
+| --- | --- | --- |
+| Admin (all branches) | 010 0000 0001 | demo-admin-2026 |
+| Staff (New Cairo only) | 010 0000 0002 | demo-staff-2026 |
+| Customer | 010 0000 0003 | demo-customer-2026 |
 
-**A considered moment of self-care, recognisably Lush.** The site is built from Lush's own material rather than generic spa styling:
+Other commands:
 
-1. **The Lush field.** The pink camouflage from the printed price list, traced into five vector layers (12 KB). It appears behind the hero, the bridal section and the style plates, softened where text sits on it.
-2. **The real logo, used sparingly.** The gold script "lush" and its butterfly are vectorised from the price list artwork. Gold otherwise appears only in hairlines, menu leader dots and small labels, and it is never used for buttons.
-3. **A typeset menu.** Service name, gold dotted leader, then price, as on a printed salon menu. Colour and add-on modifiers sit on an italic second line. Menu sections flow into balanced columns and never split.
-4. **Editorial type.** Cormorant Garamond for display (with italic accents), Jost for interface and prices. Arabic uses Noto Naskh Arabic for headings and Noto Sans Arabic for text, with no faux italics and no letter-spacing.
-5. **Charcoal for action.** Every primary action is a warm-charcoal pill. On phones, a persistent appointment bar sits in the safe area and the page reserves its height.
+```bash
+npm run create-admin   # create the real owner/admin account (prompts for name, mobile, password)
+npm test               # API tests: sign-up, log-in, permissions, branch scoping, status rules, resets, rate limits
+npm run typecheck      # site and server
+npm run build          # type-check, then build the site to dist/
+npm start              # production: one Node process serves dist/ and /api
+```
 
-The palette follows the brief (ivory, blush, rose, champagne gold, charcoal, taupe), nudged toward the price list's warmer blush and peach. These are design choices, not official brand colour codes. Text colours were adjusted for WCAG AA contrast.
+Stack: React 19, TypeScript, Tailwind CSS 4, Vite (site); Hono on Node with SQLite (server). Fonts are self-hosted.
+
+## How accounts and requests work
+
+**Customers**
+1. A customer browses the menu or gallery and taps "Request an appointment". Anything they picked (a service, a look, a branch, a bridal package) is carried in.
+2. They choose a branch, services, and a preferred date and time. Dates follow Cairo time; past dates and times are rejected.
+3. At "Your details", a first-time customer **creates an account without leaving the flow**: first name, mobile number, optional email, password. A returning customer **logs in** instead. Mobile numbers are matched in any format, including `+20…` and Arabic-Indic digits.
+4. They review and press **Send request**. The request is saved with a reference such as `LSH-7K3Q9D`, and the customer sees it under **My appointments** as "Awaiting confirmation".
+5. When the branch confirms, the customer sees "Confirmed" with the confirmed date, time and any message from the branch. Customers can cancel open requests.
+
+**Staff and admins** (`/admin`)
+- **Requests:** filter by *Needs reply*, *In touch*, *Confirmed*, *Closed* or *All*; search by name, mobile or reference; filter by branch and by type (appointment or bridal).
+  - The list refreshes every 30 seconds, new arrivals are highlighted, and the browser tab shows the count waiting.
+  - Opening a request shows the customer, with call and WhatsApp buttons, and the services with the menu prices at the time of the request. It also shows the preferred date and time, notes and history.
+- **Actions:** mark as contacted; confirm (with date, time and an optional message to the customer); change the confirmed time; decline; cancel; mark completed or no-show; reopen.
+- **Internal notes** are visible to staff only.
+- **Customers:** search, and issue a **password reset code**. No email or SMS service is connected, so staff read the one-time code to the customer by phone or WhatsApp. It expires after 30 minutes.
+- **Staff** (admins only): add staff, choose admin or staff, tie staff to one branch, disable accounts.
+- **Roles:** *Admin* sees every branch and manages staff. *Staff* tied to a branch see only that branch's requests.
+
+**If the server can't be reached** (for example, a static preview), the site switches automatically to the original mode. The visitor copies the request, calls the branch or messages on Instagram, and nothing claims to have been sent.
+
+## Security
+
+- Passwords are hashed with scrypt at OWASP's recommended cost. Staff accounts are never created by sign-up; admins create them.
+- Sessions use random tokens, stored hashed. The cookie is httpOnly, SameSite=Lax, and `Secure` with a `__Host-` prefix in production. Sessions last 30 days for customers and 12 hours for staff.
+- Changing or resetting a password signs out other devices, and disabling a staff member signs them out immediately.
+- Writes are refused unless they come from the site itself (Origin check) and carry JSON.
+- Rate limits apply to log-in, sign-up, reset codes and new requests.
+- Every request is checked on the server. Customers only see their own requests, and staff only see their branch.
+- Log-in errors don't reveal whether a number has an account.
 
 ## Where to edit
 
@@ -43,71 +87,78 @@ The palette follows the brief (ivory, blush, rose, champagne gold, charcoal, tau
 | Services, prices, modifiers, durations, bridal packages and offer | `src/content/services.ts` |
 | Gallery looks (names, styles, related services, optional photos) | `src/content/looks.ts` |
 | Hero and bridal photography slots | `src/content/media.ts` |
-| All interface copy, English and Arabic | `src/i18n/strings.ts` (Arabic is type-checked against English, so no key can be missing) |
-| Colours, fonts, spacing tokens | `src/index.css` (`@theme`) |
-| Booking-system connection point | `src/booking/provider.ts` |
+| Site copy, English and Arabic | `src/i18n/strings.ts` |
+| Dashboard copy, English and Arabic | `src/admin/strings.ts` |
+| Colours, fonts, motion | `src/index.css` |
+| API, database, rules for status changes | `server/` (`app.ts`, `store.ts`, `db.ts`) |
 
-## What works now
+The Arabic copy is type-checked against the English, so a missing translation fails the build.
 
-- Full homepage in English and Arabic with proper RTL mirroring. Switching language keeps every selection and any unfinished request.
-- Menu with five category tabs (keyboard arrows supported, sticky while scrolling). Tapping a service adds it to the request.
-- Gallery of nine looks with a viewer (arrow-key browsing). "Enquire about this look" carries the look reference (e.g. `LK-03`) and its menu service into the request.
-- Appointment request: branch → services or "Help me choose" → preferred date and time → name and mobile → review.
-  - Entry points pre-fill the request: a service row, a look, a branch in Locations, or a bridal package (bridal adds event date and group size).
-  - Dates and times are interpreted in **Africa/Cairo** whatever the visitor's device zone. Past dates, past times today and dates more than 12 months ahead are rejected with friendly messages.
-  - Egyptian mobiles in local or +20 format and international numbers are accepted, including Arabic-Indic digits.
-  - The draft is kept for the browser session and between steps.
-  - The review step says "Your appointment is confirmed once the branch replies." It offers **Copy request**, **Call {branch}** and **Message us on Instagram** (the request is copied first). Nothing on the site claims a request was sent or an appointment booked.
-- Accessibility: native modal dialogs (focus trapped, Escape closes, focus returns to the trigger), visible focus states, labelled controls, 44 px touch targets, live-region announcements, reduced-motion support.
-- Local business structured data for both branches (address, phone, map, Instagram). No ratings, hours or production domain.
+## Deploying
+
+The site now needs a small Node server, not static hosting. Any VPS or Node host with a **persistent disk** will do, for example Render, Railway or Fly.io with a volume, or a small VPS.
+
+1. `npm ci && npm run build`, then `npm start`. Restart the process after every build, because it caches `index.html`.
+2. Serve it over **HTTPS**; production cookies are `Secure`.
+3. Set these environment variables:
+
+   | Variable | Purpose |
+   | --- | --- |
+   | `PORT` | Port to listen on (default 8787) |
+   | `DB_PATH` | Database file on the persistent disk (default `data/lush.db`) |
+   | `APP_ORIGIN` | The public origin, e.g. `https://lushnailsalonspa.com` |
+   | `TRUST_PROXY=1` | Set when behind a reverse proxy or load balancer |
+
+4. Run `npm run create-admin` once on the server, then add the rest of the staff from `/admin`. **Do not run `seed:demo` in production** (it refuses to).
+5. **Back up the database file daily.** It holds every account and request.
+
+## Motion
+
+Motion is choreographed rather than constant:
+
+- **Hero on load:** the camouflage fades in, the headline reveals line by line, the framed plate rises, the nails are dealt in one by one, a sheen passes across the plate, and the spa circle settles into a slow float.
+- **Sections:** they rise into place the first time they scroll into view.
+- **Menu:** tabs switch with a sliding gold underline and the rows cascade in. Adding a service pops a check and bumps the selection count.
+- **Gallery:** tiles lift with a sheen on hover.
+- **Request flow:** steps slide in the direction of travel, mirrored in Arabic, and the progress bar fills.
+- **Dashboard:** new requests flash softly, and the detail drawer slides in from the side.
+
+Only `transform` and `opacity` animate, and nothing hijacks scrolling. The operating system's reduced-motion setting turns all of it off. The hero sequence is shown frame by frame in `docs/previews/hero-entrance-frames.jpg`.
 
 ## Needs connecting or confirming before launch
 
-**Integrations (switched off until confirmed)**
-
-- **WhatsApp:** set `whatsapp: { e164: '+20…' }` per branch in `site.ts` once the owner confirms which numbers use WhatsApp. The review step then offers a prefilled WhatsApp message. This path is built and tested.
-- **Booking system:** implement `AppointmentProvider` in `src/booking/provider.ts`. The review step then shows "Send request" with loading, success (with reference) and failure states. None is connected today.
-- **Payments:** none, by design. No payment methods are shown.
+**Integrations not connected**
+- **Notifications:** new requests appear in the dashboard, but nobody is pinged. Adding SMS, WhatsApp Business or email alerts needs a provider account. The hook point is `insertRequest` in `server/store.ts`.
+- **WhatsApp prefilled messages:** these are used only in the no-server fallback. Set `whatsapp: { e164: '+20…' }` per branch in `site.ts` once the numbers are confirmed.
+- **Payments:** none, by design.
 
 **Assets from Lush**
+- **Photography:** the hero, spa and gallery images are illustrations I drew as placeholders, not photos of Lush's work. Replace them with Lush's own photos via `public/images/` and the slots in `media.ts` and `looks.ts`.
+- The logo source file, if available, and an Open Graph share image (1200×630).
 
-- **Photography.** The hero, spa and gallery images are original illustrations I drew as placeholders, not photos of Lush's work, premises or team. Replace them with Lush's own Instagram photos. Add files to `public/images/` and fill the slots in `media.ts` and `looks.ts`; the layout picks them up automatically. Suggested: 1 hero manicure close-up, 1 spa or Moroccan bath image, 1 bridal image, and 6–12 nail sets. About 1600 px on the long edge, WebP or AVIF.
-- **Logo source file** (SVG or AI) to replace the traced version, if available.
-- **Open Graph share image** (1200×630) for link previews.
+**Business and legal**
+- **Privacy notice:** customer data (name, mobile, optional email, requests) is now stored. Add a privacy notice covering Egypt's Personal Data Protection Law (No. 151 of 2020) and link it from sign-up; the current consent line is a placeholder for that. Decide how long to keep old requests.
+- Confirm that prices and the bridal offer (10% off more than 3 services, 5% for bridesmaids) are still current. They were transcribed from the May 2026 price list.
+- Confirm opening hours (none are shown) and the cancellation, deposit and payment policies (the FAQ refers visitors to the branch).
+- Arabic service names should be reviewed by the owner, e.g. ماسك الترمس and إكستنشن بريذابل.
+- Choose the production domain, then remove `noindex` from `index.html`. `/admin` stays `noindex`.
 
-**Business details to confirm**
-
-- That prices are still current. The menu was transcribed from *Lush Price List.pdf* (last updated May 2026).
-- That the bridal offer still applies: 10% off more than 3 services, 5% off for bridesmaids. It is shown as "As listed on the current price list".
-- Opening hours, if they should appear. None are shown because none were published.
-- Cancellation, deposit and payment policies. The FAQ currently directs visitors to the branch.
-- Arabic service names. They were written for Cairo customers; the owner should review salon-specific terms such as ماسك الترمس (Termes body mask) and إكستنشن بريذابل.
-- The production domain, once chosen. Then remove `noindex` in `index.html` and add canonical and `og:url` tags.
-
-**Transcription notes.** Names follow the price list with light edits for clarity and consistency:
-
-- "Cateye" → "Cat-eye"
-- "extentions" → "extensions"
-- "Whiten face mask" → "Whitening face mask"
-- "Callus off removal" → "Callus removal"
-- The bridal "full body wax or sweet" is written "wax or sugar", matching the menu's "Waxing\Sugar" heading.
-
-Durations appear only for massage, the only section where the price list prints them.
-
-## Research notes
-
-The official service menu was read directly from the Google Drive PDF, and it is the source for every name, price, modifier, the logo and the camouflage pattern. Instagram and the Linktree page were not reachable from the build environment, so observations about them come from the brief. The branch map links are the ones given in the brief.
+**Transcription notes:** "Cateye" → "Cat-eye", "extentions" → "extensions", "Whiten" → "Whitening", "Callus off removal" → "Callus removal", and bridal "wax or sweet" → "wax or sugar", matching the menu's "Waxing\Sugar" heading. Durations are shown only for massage, as printed.
 
 ## Quality checks performed
 
-Checked with headless Chromium against the production build:
+Checked with headless Chromium against the production build and server.
 
-- **Layout:** 390, 768 and 1440 px, English and Arabic, with no horizontal overflow at 390 px.
-- **End-to-end request flow** (desktop and mobile): every validation message, Cairo-time logic with the browser set to Los Angeles, Arabic-Indic phone digits, copy to clipboard, and focus restoration after Escape.
-- **Entry points:** look → request carry-over, branch preselection, bridal fields, and a language switch mid-flow that keeps all answers.
-- **WhatsApp path:** temporarily enabled for one branch, to confirm the prefilled `wa.me` message and honest follow-up copy.
-- **axe-core** (WCAG 2.1 A/AA and best practice): 0 violations on the page and in the dialog, in both languages. Text over the camouflage field was checked by hand, since automated tools can't measure it.
-- **Links:** every outbound link goes to a verified destination (two phone numbers, two map links, Instagram, the price list). Every button has an accessible name, and there were no runtime errors, including with reduced motion.
-- **Weight:** first load is about 232 KB in English and 308 KB in Arabic (fonts are split by script and loaded only when used).
+- **Server tests (10):** sign-up and validation, the same number written different ways, generic log-in errors, cross-site write refusal, rate limiting, request validation (past dates, unknown services), customers isolated from each other, staff scoped to their branch, confirmation rules, internal notes not leaking, single-use reset codes that revoke old sessions, and admin self-lockout prevention.
+- **End-to-end:**
+  - A new customer on mobile signs up inside the flow and sends a request, which then appears in My appointments.
+  - New Cairo staff log in (a wrong password is rejected), confirm the request with a time and a message, and add a note.
+  - The customer sees "Confirmed" and the message, but not the note, and Heliopolis requests stay invisible to New Cairo staff.
+  - The admin issues a reset code and creates a Heliopolis staff member. The customer resets their password with the code, and their old session ends.
+- **Fallback:** with the API unreachable, the site offers copy and call only.
+- **Accessibility:** axe-core (WCAG 2.1 A/AA and best practice) found 0 violations on 18 screens across both languages. These cover the home page, request flow, log-in dialog, account page, and the dashboard's log-in, requests, drawer, customers and staff screens.
+- **Layout:** 390, 768 and 1440 px in English and Arabic, with no horizontal overflow, including the dashboard on mobile.
+- **Motion:** hero frames captured during load; scroll reveals start hidden and appear on scroll; no hidden content with reduced motion.
+- **Weight:** the dashboard is a separate download (about 12 KB gzipped) that customers never load.
 
-Not tested: real iOS/Android devices and screen readers (VoiceOver, TalkBack), and live map, Instagram or WhatsApp destinations, which were unreachable from the build environment.
+Not tested: real phones and screen readers, hosting on a real domain with HTTPS, and load beyond a single salon's traffic.

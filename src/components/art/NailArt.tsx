@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, type CSSProperties } from 'react'
 import type { Finish, NailShape } from '../../content/looks'
 import { LushField, type FieldTone } from '../brand/LushField'
 
@@ -274,9 +274,11 @@ interface PlateProps {
   className?: string
   /** Accessible description; omit when the plate is decorative. */
   label?: string
+  /** Deal the nails in one by one when the plate first appears (hero). */
+  animateIn?: boolean
 }
 
-export function NailPlate({ layout, shape, finishes, tone = 'blush', fieldVariant = 'a', softField = true, className, label }: PlateProps) {
+export function NailPlate({ layout, shape, finishes, tone = 'blush', fieldVariant = 'a', softField = true, className, label, animateIn = false }: PlateProps) {
   const rawId = useId()
   const id = `n${rawId.replace(/[^a-zA-Z0-9]/g, '')}`
   const { w, h } = VIEWBOX[layout]
@@ -293,6 +295,21 @@ export function NailPlate({ layout, shape, finishes, tone = 'blush', fieldVarian
     >
       <Gradients id={id} />
       <LushField tone={tone} variant={fieldVariant} soft={softField} box={{ width: w, height: h }} />
+      {animateIn &&
+        nails.map((n, i) => (
+          <g key={i} className="nail-in" style={{ '--i': i } as CSSProperties}>
+            <path
+              d={nailPath(n.shape, n.w, n.len * SHAPE_LENGTH[n.shape])}
+              transform={`translate(${n.x + 5} ${n.y + 10}) rotate(${n.angle})`}
+              fill="#7d4a3f"
+              opacity="0.32"
+              filter={`url(#${id}-shadow)`}
+            />
+            <Nail spec={n} id={id} index={i} />
+          </g>
+        ))}
+      {!animateIn && (
+      <>
       <g filter={`url(#${id}-shadow)`} opacity="0.32">
         {nails.map((n, i) => (
           <path
@@ -306,6 +323,8 @@ export function NailPlate({ layout, shape, finishes, tone = 'blush', fieldVarian
       {nails.map((n, i) => (
         <Nail key={i} spec={n} id={id} index={i} />
       ))}
+      </>
+      )}
     </svg>
   )
 }

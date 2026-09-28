@@ -272,3 +272,240 @@
     --bar-h: calc(4.25rem + max(0.75rem, env(safe-area-inset-bottom)));
   }
 }
+
+/* ------------------------------------------------------------------ motion
+ * Entrance choreography and small interactions. Everything here only runs when the visitor
+ * hasn't asked for reduced motion; without it, content simply appears in place.
+ * Only transform and opacity animate, so it stays smooth on phones.
+ */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise, 20px));
+  }
+}
+@keyframes line-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.45em);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(-20% 0 -30% 0);
+  }
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.965);
+  }
+}
+@keyframes nail-in {
+  from {
+    opacity: 0;
+    transform: translateY(40px) rotate(-5deg);
+  }
+}
+@keyframes field-in {
+  from {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes sheen {
+  from {
+    transform: translateX(-140%) skewX(-14deg);
+  }
+  to {
+    transform: translateX(240%) skewX(-14deg);
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.55);
+  }
+  60% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes bump {
+  40% {
+    transform: scale(1.16);
+  }
+}
+@keyframes slide-from-end {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+@keyframes slide-from-start {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+@keyframes drawer-from-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes drawer-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@keyframes flash {
+  from {
+    background-color: var(--color-blush);
+  }
+}
+@keyframes bar-in {
+  from {
+    transform: translateY(110%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Hero: text, headline lines, framed plate, nails dealt one by one, spa circle. */
+  .hero-seq > * {
+    animation: rise-in 900ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--i, 0) * 90ms + 120ms);
+  }
+  .hero-line {
+    animation: line-in 1050ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--i, 0) * 150ms + 220ms);
+  }
+  .field-in {
+    animation: field-in 1600ms var(--ease-out-soft) both;
+  }
+  .hero-card {
+    animation: card-in 1100ms var(--ease-out-soft) 250ms both;
+  }
+  .nail-in {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: nail-in 900ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--i, 0) * 95ms + 700ms);
+  }
+  .spa-in {
+    animation:
+      card-in 900ms var(--ease-out-soft) 1000ms both,
+      float 7s ease-in-out 2.2s infinite;
+  }
+  /* One sweep of light across the hero plate once the nails have landed, and again on hover. */
+  .sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 32%, rgb(255 255 255 / 0.5) 50%, transparent 68%);
+    transform: translateX(-140%) skewX(-14deg);
+    animation: sheen 1.5s ease-in-out 1.9s both;
+  }
+  .sheen:hover::after,
+  .group:hover .tile-sheen::after,
+  .group:focus-visible .tile-sheen::after {
+    animation: sheen 1.1s ease-in-out both;
+  }
+  .tile-sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 0.4) 50%, transparent 65%);
+    transform: translateX(-140%) skewX(-14deg);
+  }
+
+  /* Sections rise into place the first time they scroll into view (see lib/reveal.ts). */
+  .reveal {
+    opacity: 0;
+    transform: translateY(26px);
+    transition:
+      opacity 800ms var(--ease-out-soft),
+      transform 900ms var(--ease-out-soft);
+    transition-delay: calc(var(--i, 0) * 85ms);
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Menu: a new category's rows cascade in. */
+  .row-in {
+    --rise: 10px;
+    animation: rise-in 480ms var(--ease-out-soft) both;
+    animation-delay: calc(min(var(--i, 0), 14) * 30ms + 40ms);
+  }
+  .check-pop {
+    animation: pop 480ms var(--ease-out-soft);
+  }
+  .bump {
+    animation: bump 420ms var(--ease-out-soft);
+  }
+
+  /* Gallery tiles lift slightly on hover. */
+  .tile-lift {
+    transition:
+      transform 450ms var(--ease-out-soft),
+      box-shadow 450ms var(--ease-out-soft);
+  }
+  .tile-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 40px -28px rgb(125 74 63 / 0.55);
+  }
+  .fade-swap {
+    animation: fade-in 420ms ease-out both;
+  }
+
+  /* Request flow: steps slide in the direction of travel (mirrored in Arabic). */
+  .step-enter-forward {
+    animation: slide-from-end 380ms var(--ease-out-soft) both;
+  }
+  .step-enter-back {
+    animation: slide-from-start 380ms var(--ease-out-soft) both;
+  }
+  [dir='rtl'] .step-enter-forward {
+    animation-name: slide-from-start;
+  }
+  [dir='rtl'] .step-enter-back {
+    animation-name: slide-from-end;
+  }
+  .pop-in {
+    animation: card-in 520ms var(--ease-out-soft) both;
+  }
+  .check-draw {
+    animation: pop 620ms var(--ease-out-soft) 150ms both;
+  }
+  details[open] > :not(summary) {
+    animation: rise-in 360ms var(--ease-out-soft) both;
+    --rise: 6px;
+  }
+
+  .bar-in {
+    animation: bar-in 600ms var(--ease-out-soft) 800ms backwards;
+  }
+
+  /* Staff dashboard. */
+  .row-fresh {
+    animation: flash 2.6s ease-out both;
+  }
+  dialog.drawer[open] {
+    animation: drawer-from-right 380ms var(--ease-out-soft);
+  }
+  [dir='rtl'] dialog.drawer[open] {
+    animation-name: drawer-from-left;
+  }
+}

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { bridalOffer, categories } from '../../content/services'
@@ -13,7 +14,7 @@ export function Bridal() {
     <section id="bridal" aria-labelledby="bridal-title" className="relative isolate overflow-hidden py-20 sm:py-24 lg:py-32">
       <LushField className="absolute inset-0 -z-10 h-full w-full" variant="d" soft />
       <div className="container-page">
-        <div className="mx-auto max-w-[44rem] text-center">
+        <div className="reveal mx-auto max-w-[44rem] text-center">
           <img src="/brand/lush-butterfly.svg" alt="" width={66} height={74} className="mx-auto h-12 w-auto" loading="lazy" />
           <p className="eyebrow mt-5 !text-charcoal">{t.bridal.eyebrow}</p>
           <h2 id="bridal-title" className="display mt-4 text-[clamp(2.75rem,6vw,4.75rem)]">
@@ -23,12 +24,13 @@ export function Bridal() {
         </div>
 
         <ul className="mx-auto mt-12 grid max-w-[64rem] gap-5 md:grid-cols-2 lg:mt-16 lg:gap-8">
-          {packages.map((pkg) => {
+          {packages.map((pkg, index) => {
             const name = pick(pkg.name)
             return (
               <li
                 key={pkg.id}
-                className="relative flex flex-col rounded-[1.5rem] bg-paper/95 p-7 shadow-[0_24px_60px_-36px_rgb(125_74_63/0.55)] sm:p-10"
+                style={{ '--i': index + 1 } as CSSProperties}
+                className="reveal relative flex flex-col rounded-[1.5rem] bg-paper/95 p-7 shadow-[0_24px_60px_-36px_rgb(125_74_63/0.55)] sm:p-10"
               >
                 {/* Inner gold hairline, like the frame of a printed menu card. */}
                 <span className="pointer-events-none absolute inset-2.5 rounded-[1.1rem] border border-gold-soft/80" aria-hidden="true" />
@@ -60,7 +62,7 @@ export function Bridal() {
           })}
         </ul>
 
-        <div className="mx-auto mt-12 max-w-[40rem] text-center lg:mt-16">
+        <div className="reveal mx-auto mt-12 max-w-[40rem] text-center lg:mt-16">
           <h3 className="display text-[2rem] italic">{t.bridal.customTitle}</h3>
           <p className="mt-3 text-charcoal/85">
             {t.bridal.customBody(bridalOffer.moreThanServices, bridalOffer.brideDiscountPercent, bridalOffer.bridesmaidDiscountPercent)}
