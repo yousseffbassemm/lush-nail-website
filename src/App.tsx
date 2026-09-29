@@ -48,12 +48,24 @@ function HomePage() {
   )
 }
 
+/** Shown for the moment the dashboard's own code is downloading. */
+function DashboardLoading() {
+  const { t } = useI18n()
+  return (
+    <main className="grid min-h-screen place-items-center bg-ivory" aria-busy="true">
+      <p role="status" className="text-taupe-ink">
+        {t.common.loading}
+      </p>
+    </main>
+  )
+}
+
 function Routes() {
   const path = usePathname().replace(/\/+$/, '') || '/'
   useRevealOnScroll()
   if (path === '/admin' || path.startsWith('/admin/')) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-ivory" aria-busy="true" />}>
+      <Suspense fallback={<DashboardLoading />}>
         <AdminApp />
       </Suspense>
     )

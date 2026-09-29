@@ -23,6 +23,7 @@ const en = {
     opensInNewTab: '(opens in a new tab)',
     tagline: 'Nails • Skin • Spa',
     businessName: 'Lush Nail Salon & Spa',
+    loading: 'Loading…',
     selfCare: 'Your self-care destination',
   },
   nav: {
@@ -433,6 +434,7 @@ const ar: Strings = {
     opensInNewTab: '(بيفتح في صفحة جديدة)',
     tagline: 'أظافر • بشرة • سبا',
     businessName: 'لاش نيل صالون آند سبا',
+    loading: 'بنحمّل…',
     selfCare: 'وجهتك للعناية بنفسك',
   },
   nav: {

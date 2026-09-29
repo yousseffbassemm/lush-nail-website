@@ -68,9 +68,11 @@ interface Props {
   allowSignup?: boolean
   /** Replaces the log-in heading and help text. */
   loginCopy?: { title: string; help: string }
+  /** Reports the name and number as they're typed, so a host (the request flow) can keep them. */
+  onContactChange?: (field: 'firstName' | 'phone', value: string) => void
 }
 
-export function AuthPanel({ initialMode = 'signup', prefill, onDone, headingLevel = 'h2', intro, allowSignup = true, loginCopy }: Props) {
+export function AuthPanel({ initialMode = 'signup', prefill, onDone, headingLevel = 'h2', intro, allowSignup = true, loginCopy, onContactChange }: Props) {
   const { t, lang } = useI18n()
   const { signUp, logIn, resetPassword, status } = useAuth()
   const uid = useId().replace(/:/g, '')
@@ -93,6 +95,7 @@ export function AuthPanel({ initialMode = 'signup', prefill, onDone, headingLeve
   const message = (code: string) => a.errors[code] ?? a.errors.server
   const set = (field: keyof typeof form, value: string) => {
     setForm((f) => ({ ...f, [field]: value }))
+    if (field === 'firstName' || field === 'phone') onContactChange?.(field, value)
     setErrors((e) => {
       if (!(field in e)) return e
       const next = { ...e }

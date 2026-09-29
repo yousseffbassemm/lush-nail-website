@@ -87,7 +87,12 @@ function AccountDetails({ draft, set, errors }: StepProps) {
         aria-describedby={describedBy('req-account', false, errors.account)}
         className={`rounded-2xl border bg-paper p-5 sm:p-6 ${errors.account ? 'border-danger' : 'border-line-strong'}`}
       >
-        <AuthPanel headingLevel="h4" prefill={{ firstName: draft.firstName, phone: draft.phone }} />
+        {/* What's typed here also lands in the request, so nothing is lost if the flow falls back to message-or-call. */}
+        <AuthPanel
+          headingLevel="h4"
+          prefill={{ firstName: draft.firstName, phone: draft.phone }}
+          onContactChange={(field, value) => set(field, value)}
+        />
       </div>
       <FieldError id="req-account" error={errors.account} />
     </div>
