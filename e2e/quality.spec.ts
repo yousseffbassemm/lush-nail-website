@@ -89,6 +89,7 @@ test.describe('accessibility and motion', () => {
     await signIn(page, customer)
     await page.goto('/account?lang=ar')
     await expect(page.getByRole('heading', { level: 1 })).toContainText(customer.firstName)
+    await expect(page.locator('li', { hasText: customer.request.reference })).toBeVisible()
     await expectNoA11yViolations(page, 'account (ar)')
     await expectNoHorizontalOverflow(page)
   })

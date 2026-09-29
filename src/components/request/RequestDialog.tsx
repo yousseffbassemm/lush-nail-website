@@ -143,14 +143,16 @@ export function RequestDialog() {
 
   const branch = getBranch(draft.branchId)
   const look = findLook(draft.lookRef)
-  const showCarried = step > 0 && (branch || look || draft.bridal)
+  // Once there's an outcome (sent, copied…), it has its own heading; the review heading and chips step aside.
+  const finished = stepId === 'review' && outcome !== null
+  const showCarried = step > 0 && !finished && (branch || look || draft.bridal)
 
   return (
     <Modal
       open={isOpen}
       onClose={finish}
       labelledBy="request-title"
-      describedBy="request-step-title"
+      describedBy={finished ? undefined : 'request-step-title'}
       initialFocus={headingRef}
       className="sheet m-0 h-[100dvh] w-full bg-ivory p-0 md:m-auto md:h-[min(50rem,calc(100dvh-4rem))] md:w-[min(42rem,calc(100vw-4rem))] md:rounded-[1.5rem]"
     >
@@ -192,15 +194,19 @@ export function RequestDialog() {
         </header>
 
         <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 sm:px-8 sm:py-8">
-          <p className="text-sm text-taupe-ink sm:hidden">{t.request.stepOf(step + 1, STEPS.length)}</p>
-          <h3
-            id="request-step-title"
-            ref={headingRef}
-            tabIndex={-1}
-            className="display text-[2.1rem] leading-tight focus:outline-none sm:text-[2.5rem]"
-          >
-            {titles[step]}
-          </h3>
+          {!finished && (
+            <>
+              <p className="text-sm text-taupe-ink sm:hidden">{t.request.stepOf(step + 1, STEPS.length)}</p>
+              <h3
+                id="request-step-title"
+                ref={headingRef}
+                tabIndex={-1}
+                className="display text-[2.1rem] leading-tight focus:outline-none sm:text-[2.5rem]"
+              >
+                {titles[step]}
+              </h3>
+            </>
+          )}
 
           {showCarried && (
             <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
@@ -227,7 +233,7 @@ export function RequestDialog() {
             </div>
           )}
 
-          <div key={step} className={`mt-6 step-enter step-enter-${direction}`}>
+          <div key={step} className={`${finished ? '' : 'mt-6 '}step-enter step-enter-${direction}`}>
             {stepId === 'branch' && <StepBranch draft={draft} set={set} errors={errors} />}
             {stepId === 'services' && <StepServices draft={draft} set={set} errors={errors} />}
             {stepId === 'when' && <StepWhen draft={draft} set={set} errors={errors} />}

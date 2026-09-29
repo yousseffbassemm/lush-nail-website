@@ -4,7 +4,15 @@ const isMobile = () => test.info().project.name === 'mobile'
 
 test.describe('visitor', () => {
   test('home page renders cleanly in English and Arabic', async ({ page }) => {
-    await page.goto('/')
+    const response = await page.goto('/')
+    // The production server locks pages down (the Vite dev server doesn't, so only check there).
+    if (String(test.info().project.use.baseURL).endsWith(':4321')) {
+      const headers = response!.headers()
+      expect(headers['content-security-policy']).toContain("script-src 'self' 'sha256-")
+      expect(headers['content-security-policy']).toContain("frame-ancestors 'none'")
+      expect(headers['x-frame-options']).toBe('DENY')
+      expect(headers['cache-control']).toBe('no-cache')
+    }
     await expect(page).toHaveTitle(/Lush Nail Salon & Spa/)
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Beautiful nails.')
     await expect(page.getByRole('link', { name: 'Lush Nail Salon & Spa, back to top' }).locator('img')).toBeVisible()

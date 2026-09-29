@@ -375,10 +375,10 @@ export function listRequestsForStaff(db: DB, scope: StaffScope, filters: Request
   }
   if (filters.q) {
     const like = `%${filters.q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`
-    const digits = filters.q.replace(/\D/g, '')
-    where.push(`(r.reference LIKE ? ESCAPE '\\' OR u.first_name LIKE ? ESCAPE '\\'${digits.length >= 3 ? ' OR u.phone LIKE ?' : ''})`)
+    const digits = phoneDigits(filters.q)
+    where.push(`(r.reference LIKE ? ESCAPE '\\' OR u.first_name LIKE ? ESCAPE '\\'${digits ? ' OR u.phone LIKE ?' : ''})`)
     params.push(like, like)
-    if (digits.length >= 3) params.push(`%${digits.replace(/^0/, '')}%`)
+    if (digits) params.push(`%${digits}%`)
   }
   const sql = `
     SELECT r.*, u.first_name AS customer_name, u.phone AS customer_phone, u.email AS customer_email
@@ -422,17 +422,28 @@ export function inScope(scope: StaffScope, request: Pick<RequestRow, 'branch_id'
   return !scope.branchId || scope.branchId === request.branch_id
 }
 
+/**
+ * The digits to look for in stored numbers (+20…), when a search looks like a phone number:
+ * "010 1234", "+20 10…" or Arabic-Indic digits. Anything with letters (a name, a reference) isn't one.
+ */
+export function phoneDigits(q: string) {
+  const ascii = q.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+  if (!/^[\d\s+().-]+$/.test(ascii)) return null
+  const digits = ascii.replace(/\D/g, '').replace(/^0/, '')
+  return digits.length >= 3 ? digits : null
+}
+
 export function listCustomers(db: DB, q: string) {
   const like = `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`
-  const digits = q.replace(/\D/g, '')
+  const digits = phoneDigits(q)
   const rows = db
     .prepare(
       `SELECT u.*, COUNT(r.id) AS request_count, MAX(r.created_at) AS last_request_at
        FROM users u LEFT JOIN requests r ON r.user_id = u.id
-       WHERE u.role = 'customer' ${q ? `AND (u.first_name LIKE ? ESCAPE '\\' OR u.email LIKE ? ESCAPE '\\'${digits.length >= 3 ? ' OR u.phone LIKE ?' : ''})` : ''}
+       WHERE u.role = 'customer' ${q ? `AND (u.first_name LIKE ? ESCAPE '\\' OR u.email LIKE ? ESCAPE '\\'${digits ? ' OR u.phone LIKE ?' : ''})` : ''}
        GROUP BY u.id ORDER BY u.created_at DESC LIMIT 200`,
     )
-    .all(...(q ? [like, like, ...(digits.length >= 3 ? [`%${digits.replace(/^0/, '')}%`] : [])] : [])) as unknown as (UserRow & {
+    .all(...(q ? [like, like, ...(digits ? [`%${digits}%`] : [])] : [])) as unknown as (UserRow & {
     request_count: number
     last_request_at: string | null
   })[]

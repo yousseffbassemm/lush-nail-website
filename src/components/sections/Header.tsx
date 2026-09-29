@@ -112,7 +112,7 @@ export function Header() {
             else routeTo('/')
           }}
         >
-          <Logo className="h-9 w-auto sm:h-10" alt="" />
+          <Logo className="h-9 w-auto sm:h-10" alt="" priority />
         </a>
 
         <nav aria-label={t.nav.label} className="hidden lg:block">

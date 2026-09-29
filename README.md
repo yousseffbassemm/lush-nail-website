@@ -41,10 +41,14 @@ Other commands:
 ```bash
 npm run create-admin   # create the real owner/admin account (prompts for name, mobile, password)
 npm test               # API tests: sign-up, log-in, permissions, branch scoping, status rules, resets, rate limits
+npm run test:e2e       # build, then browser tests as a visitor, customer, staff member and admin
+npm run test:e2e:dev   # the same against the Vite dev server, which also surfaces React warnings
 npm run typecheck      # site and server
 npm run build          # type-check, then build the site to dist/
 npm start              # production: one Node process serves dist/ and /api
 ```
+
+The browser tests use Playwright with Chromium. If Chromium isn't installed, run `npx playwright install chromium` once, or set `CHROMIUM_PATH` to an existing Chromium. Each run starts its own server on a fresh database, so it never touches `data/`.
 
 Stack: React 19, TypeScript, Tailwind CSS 4, Vite (site); Hono on Node with SQLite (server). Fonts are self-hosted.
 
@@ -55,15 +59,17 @@ Stack: React 19, TypeScript, Tailwind CSS 4, Vite (site); Hono on Node with SQLi
 2. They choose a branch, services, and a preferred date and time. Dates follow Cairo time; past dates and times are rejected.
 3. At "Your details", a first-time customer **creates an account without leaving the flow**: first name, mobile number, optional email, password. A returning customer **logs in** instead. Mobile numbers are matched in any format, including `+20…` and Arabic-Indic digits.
 4. They review and press **Send request**. The request is saved with a reference such as `LSH-7K3Q9D`, and the customer sees it under **My appointments** as "Awaiting confirmation".
-5. When the branch confirms, the customer sees "Confirmed" with the confirmed date, time and any message from the branch. Customers can cancel open requests.
+5. When the branch confirms, the customer sees "Confirmed" with the confirmed date, time and any message from the branch. The list refreshes when they come back to the tab.
+6. Customers can cancel a request until its day has passed. A request whose day passed without a confirmation moves to *Past* and says so honestly.
+7. Trying to sign up with a number that already has an account offers "Log in with this number".
 
 **Staff and admins** (`/admin`)
-- **Requests:** filter by *Needs reply*, *In touch*, *Confirmed*, *Closed* or *All*; search by name, mobile or reference; filter by branch and by type (appointment or bridal).
-  - The list refreshes every 30 seconds, new arrivals are highlighted, and the browser tab shows the count waiting.
+- **Requests:** filter by *Needs reply*, *Today* (confirmed for today, in time order), *In touch*, *Confirmed*, *Closed* or *All*; search by name, mobile or reference; filter by branch and by type (appointment or bridal).
+  - The list refreshes every 30 seconds, genuinely new arrivals are highlighted, and the browser tab shows the count waiting.
   - Opening a request shows the customer, with call and WhatsApp buttons, and the services with the menu prices at the time of the request. It also shows the preferred date and time, notes and history.
-- **Actions:** mark as contacted; confirm (with date, time and an optional message to the customer); change the confirmed time; decline; cancel; mark completed or no-show; reopen.
+- **Actions:** mark as contacted; confirm (with date, time and an optional message to the customer; the date can't be in the past); change the confirmed time; decline; cancel; mark completed or no-show; reopen.
 - **Internal notes** are visible to staff only.
-- **Customers:** search, and issue a **password reset code**. No email or SMS service is connected, so staff read the one-time code to the customer by phone or WhatsApp. It expires after 30 minutes.
+- **Customers:** search, open a customer's requests from their card, and issue a **password reset code**. No email or SMS service is connected, so staff read the one-time code to the customer by phone or WhatsApp. It expires after 30 minutes.
 - **Staff** (admins only): add staff, choose admin or staff, tie staff to one branch, disable accounts.
 - **Roles:** *Admin* sees every branch and manages staff. *Staff* tied to a branch see only that branch's requests.
 
@@ -75,6 +81,8 @@ Stack: React 19, TypeScript, Tailwind CSS 4, Vite (site); Hono on Node with SQLi
 - Sessions use random tokens, stored hashed. The cookie is httpOnly, SameSite=Lax, and `Secure` with a `__Host-` prefix in production. Sessions last 30 days for customers and 12 hours for staff.
 - Changing or resetting a password signs out other devices, and disabling a staff member signs them out immediately.
 - Writes are refused unless they come from the site itself (Origin check) and carry JSON.
+- Pages carry a strict Content-Security-Policy (only the site's own scripts, with the one inline script pinned by hash), can't be framed, and are always revalidated so a deploy takes effect at once.
+- Signing in replaces any session the browser already had.
 - Rate limits apply to log-in, sign-up, reset codes and new requests.
 - Every request is checked on the server. Customers only see their own requests, and staff only see their branch.
 - Log-in errors don't reveal whether a number has an account.
@@ -149,16 +157,13 @@ Only `transform` and `opacity` animate, and nothing hijacks scrolling. The opera
 
 Checked with headless Chromium against the production build and server.
 
-- **Server tests (10):** sign-up and validation, the same number written different ways, generic log-in errors, cross-site write refusal, rate limiting, request validation (past dates, unknown services), customers isolated from each other, staff scoped to their branch, confirmation rules, internal notes not leaking, single-use reset codes that revoke old sessions, and admin self-lockout prevention.
-- **End-to-end:**
-  - A new customer on mobile signs up inside the flow and sends a request, which then appears in My appointments.
-  - New Cairo staff log in (a wrong password is rejected), confirm the request with a time and a message, and add a note.
-  - The customer sees "Confirmed" and the message, but not the note, and Heliopolis requests stay invisible to New Cairo staff.
-  - The admin issues a reset code and creates a Heliopolis staff member. The customer resets their password with the code, and their old session ends.
-- **Fallback:** with the API unreachable, the site offers copy and call only.
-- **Accessibility:** axe-core (WCAG 2.1 A/AA and best practice) found 0 violations on 18 screens across both languages. These cover the home page, request flow, log-in dialog, account page, and the dashboard's log-in, requests, drawer, customers and staff screens.
-- **Layout:** 390, 768 and 1440 px in English and Arabic, with no horizontal overflow, including the dashboard on mobile.
-- **Motion:** hero frames captured during load; scroll reveals start hidden and appear on scroll; no hidden content with reduced motion.
-- **Weight:** the dashboard is a separate download (about 12 KB gzipped) that customers never load.
+- **Server tests (12):** sign-up and validation, the same number written different ways, generic log-in errors, cross-site write refusal, rate limiting, request validation (past dates, unknown services), customers isolated from each other, staff scoped to their branch and unable to file customer requests, confirmation rules (no past dates), no customer cancellation after the day, internal notes not leaking, single-use reset codes that revoke old sessions, a new sign-in replacing the old session, and admin self-lockout prevention.
+- **Browser tests (41 scenarios × desktop 1440, mobile 390 and full motion = 123 runs)** in `e2e/`. Any console error or warning, failed request, request to another site, accessibility violation or horizontal overflow fails the test.
+  - *Visitor:* home page in both languages; navigation, deep links, menu tabs by mouse and keyboard, gallery viewer, FAQ, language memory, only verified outbound links, a real 404 page, and the security headers.
+  - *Customer:* sign-up inside the flow, then log out and back in; validation on every step; carrying a look, branch or bridal package into the request; switching language mid-request; a double tap sending one request; a session ending before sending; Cairo dates from abroad; cancelling; profile, email, language and password changes; a reset code from the branch; an existing number offered log in.
+  - *Staff and admin:* branch scoping; customers kept out; confirming, rescheduling, completing and declining, with the customer seeing each change; the Today view and search; customer reset codes and links to their requests; adding, moving and disabling staff without locking yourself out; staff asked to log out before requesting as a customer.
+  - *Quality:* axe-core (WCAG 2.1 A/AA and best practice) on every request step, dialog, account page and dashboard screen in English and Arabic; sections never left hidden with or without motion; hero text readable within 1.5 s; the no-server fallback copying a request that names the branch and number.
+- **Lighthouse (production server, local):** desktop 100 performance, 100 accessibility, 100 best practices; mobile (simulated slow 4G) 95, 100, 100. SEO shows 63 only because of the intentional `noindex`.
+- **Weight:** pages and scripts are served compressed (about 122 KB of script and 13 KB of CSS gzipped); the dashboard is a separate download that customers never load.
 
 Not tested: real phones and screen readers, hosting on a real domain with HTTPS, and load beyond a single salon's traffic.

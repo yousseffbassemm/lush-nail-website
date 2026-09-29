@@ -160,6 +160,10 @@ test("staff see requests for their branch only, and customers can't reach staff 
   assert.equal(list.json.requests[0].customer.firstName, 'Salma')
   assert.equal((await staff.get(`/api/admin/requests/${helio.json.request.id}`)).status, 404)
   assert.equal((await staff.get('/api/admin/staff')).status, 403)
+  // Staff accounts can't file customer requests.
+  const own = await staff.post('/api/requests', request())
+  assert.equal(own.status, 403)
+  assert.equal(own.json.error, 'staff_account')
 })
 
 test('confirming needs a date and time, and the customer sees the confirmation', async () => {
@@ -266,6 +270,34 @@ test('confirmed days must be ahead, and customers cannot cancel once the day has
   const late = await customer.post(`/api/requests/${r.reference}/cancel`)
   assert.equal(late.status, 409)
   assert.equal(late.json.error, 'too_late')
+})
+
+test('searching by reference or name never matches phone numbers by accident', async () => {
+  const { phoneDigits } = await import('../store')
+  assert.equal(phoneDigits('LSH-3VT545'), null, 'a reference is not a phone number')
+  assert.equal(phoneDigits('Nour 2'), null)
+  assert.equal(phoneDigits('010 1234'), '101234')
+  assert.equal(phoneDigits('+20 10 1234'), '20101234')
+  assert.equal(phoneDigits('٠١٠١٢٣'), '10123', 'Arabic-Indic digits')
+  assert.equal(phoneDigits('01'), null, 'too short to search')
+
+  const { app, db } = setup()
+  await makeStaff(db, 'admin', '+201000000001', null)
+  const a = client(app)
+  await a.post('/api/auth/signup', { firstName: 'Aya', phone: '01012345678', password: 'password-1' })
+  const { request: mine } = (await a.post('/api/requests', request())).json
+  // Another customer whose number contains the digits of Aya's reference.
+  const b = client(app)
+  const refDigits = mine.reference.replace(/\D/g, '').padEnd(3, '7')
+  await b.post('/api/auth/signup', { firstName: 'Bella', phone: `011${refDigits.padStart(8, '9').slice(0, 8)}`, password: 'password-1' })
+  await b.post('/api/requests', request())
+  const admin = client(app)
+  await admin.post('/api/auth/login', { phone: '01000000001', password: 'staff-password-1' })
+  const found = await admin.get(`/api/admin/requests?q=${mine.reference}`)
+  assert.deepEqual(
+    found.json.requests.map((r: { reference: string }) => r.reference),
+    [mine.reference],
+  )
 })
 
 test('signing in again replaces the session this browser had', async () => {

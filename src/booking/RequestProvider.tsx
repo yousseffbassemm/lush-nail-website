@@ -36,7 +36,11 @@ function loadDraft(): RequestDraft {
 export function RequestProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n()
   const { status, user } = useAuth()
-  const contact = useMemo(() => ({ mode: status === 'offline' ? ('manual' as const) : ('account' as const), signedIn: Boolean(user) }), [status, user])
+  // Requests come from customer accounts; staff signed in on the public site are asked to log out first.
+  const contact = useMemo(
+    () => ({ mode: status === 'offline' ? ('manual' as const) : ('account' as const), signedIn: user?.role === 'customer' }),
+    [status, user],
+  )
   const [draft, setDraft] = useState<RequestDraft>(loadDraft)
   const [isOpen, setOpen] = useState(false)
   const [step, setStep] = useState(0)

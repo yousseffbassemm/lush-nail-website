@@ -42,6 +42,19 @@ function AccountDetails({ draft, set, errors }: StepProps) {
   const { user, logOut } = useAuth()
   const d = t.request.details
 
+  if (user && user.role !== 'customer') {
+    return (
+      <div id="req-account" tabIndex={-1} className="grid gap-4 rounded-2xl border border-line-strong bg-paper p-5 sm:p-6 focus:outline-none">
+        <p className="font-medium">{t.auth.signedInAs(user.firstName)}</p>
+        <p className="text-sm text-taupe-ink">{d.staffAccount}</p>
+        <button type="button" onClick={() => void logOut()} className="link-underline justify-self-start text-sm font-medium">
+          {t.auth.logOut}
+        </button>
+        <FieldError id="req-account" error={errors.account} />
+      </div>
+    )
+  }
+
   if (user) {
     return (
       <div className="grid gap-6">

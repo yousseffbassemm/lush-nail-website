@@ -224,6 +224,7 @@ const en = {
       tooLong: 'That’s too long. Please shorten it.',
       too_late: 'This appointment’s day has passed, so it can’t be cancelled here. Call the branch if you need to.',
       invalid_transition: 'The branch has just updated this request. Its latest status is shown above.',
+      staff_account: 'Requests are sent from customer accounts. Log out of the staff account to continue.',
     } as Record<string, string>,
   },
   account: {
@@ -273,6 +274,7 @@ const en = {
     changePassword: 'Change password',
     updatePassword: 'Update password',
     passwordChanged: 'Password changed. Any other devices were logged out.',
+    phoneLocked: 'You log in with this number. To change it, call your branch.',
     requestAnother: 'Request an appointment',
     bridal: 'Bridal enquiry',
     anyTime: 'Any time',
@@ -326,6 +328,7 @@ const en = {
       accountTitle: 'Your account',
       accountHelp: 'Create an account the first time, then just log in next time. Your requests stay in your account.',
       signedInHelp: 'The branch will use your account details to confirm.',
+      staffAccount: 'This is a staff account. Requests are sent from customer accounts, so log out to continue as a customer.',
     },
     review: {
       title: 'Review your request',
@@ -631,6 +634,7 @@ const ar: Strings = {
       tooLong: 'النص طويل. قصريه شوية.',
       too_late: 'يوم الميعاد ده عدى، فمينفعش يتلغى من هنا. اتصلي بالفرع لو محتاجة.',
       invalid_transition: 'الفرع لسه محدّث الطلب ده. آخر حالة ليه ظاهرة فوق.',
+      staff_account: 'الطلبات بتتبعت من حسابات العملاء. سجلي خروج من حساب الموظفين علشان تكملي.',
     } as Record<string, string>,
   },
   account: {
@@ -680,6 +684,7 @@ const ar: Strings = {
     changePassword: 'تغيير كلمة السر',
     updatePassword: 'غيري كلمة السر',
     passwordChanged: 'كلمة السر اتغيرت، واتعمل تسجيل خروج من أي أجهزة تانية.',
+    phoneLocked: 'بتسجلي دخول بالرقم ده. لو عايزة تغيريه اتصلي بالفرع.',
     requestAnother: 'اطلبي موعد',
     bridal: 'استفسار عروسة',
     anyTime: 'أي وقت',
@@ -733,6 +738,7 @@ const ar: Strings = {
       accountTitle: 'حسابك',
       accountHelp: 'اعملي حساب أول مرة، وبعد كده سجلي دخول بس. طلباتك بتفضل محفوظة في حسابك.',
       signedInHelp: 'الفرع هيستخدم بيانات حسابك علشان يأكد معاكي.',
+      staffAccount: 'ده حساب موظفين. الطلبات بتتبعت من حسابات العملاء، فسجلي خروج علشان تكملي كعميلة.',
     },
     review: {
       title: 'راجعي طلبك',

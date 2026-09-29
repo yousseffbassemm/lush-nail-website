@@ -242,8 +242,9 @@ export function Gallery() {
                       className="h-full w-full transition-transform duration-300 ease-out group-hover:scale-[1.025] motion-reduce:group-hover:scale-100"
                     />
                   </span>
-                  <span className="flex items-baseline justify-between gap-3 px-3.5 py-3 sm:px-4">
-                    <span className="display truncate text-[1.35rem] sm:text-[1.5rem]">{pick(look.name)}</span>
+                  {/* When a tile is narrow the price line wraps under the name rather than cutting the name short. */}
+                  <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 px-3.5 py-3 sm:px-4">
+                    <span className="display min-w-0 text-[1.35rem] sm:text-[1.5rem]">{pick(look.name)}</span>
                     {lead && (
                       <span className="tabular hidden shrink-0 text-xs text-taupe-ink sm:inline">
                         {pick(lead.name)} · {price(lead.price)}

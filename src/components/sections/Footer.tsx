@@ -1,6 +1,7 @@
 import { useI18n } from '../../i18n/I18nProvider'
 import { branches, site } from '../../content/site'
 import { goToSection } from '../../lib/scroll'
+import { Link } from '../../lib/router'
 import { Logo } from '../brand/Logo'
 import { Icon } from '../ui/Icon'
 import { NAV_ITEMS } from './Header'
@@ -36,6 +37,11 @@ export function Footer() {
                 </a>
               </li>
             ))}
+            <li>
+              <Link to="/account" className="inline-flex min-h-10 items-center text-ivory/85 hover:text-ivory">
+                {t.nav.account}
+              </Link>
+            </li>
           </ul>
         </nav>
 

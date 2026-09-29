@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { categories, type Modifier, type Service } from '../../content/services'
@@ -92,6 +92,20 @@ export function ServiceMenu() {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const category = categories.find((c) => c.id === active) ?? categories[0]
   const count = draft.serviceIds.length
+  const tabList = useRef<HTMLDivElement>(null)
+  const [moreTabs, setMoreTabs] = useState(false)
+  const updateFade = useCallback(() => {
+    const el = tabList.current
+    // scrollLeft is negative in right-to-left layouts, so compare distances.
+    if (el) setMoreTabs(el.scrollWidth - el.clientWidth - Math.abs(el.scrollLeft) > 4)
+  }, [])
+  useEffect(() => {
+    updateFade()
+    // Tab widths settle once the web fonts arrive.
+    void document.fonts?.ready.then(updateFade)
+    window.addEventListener('resize', updateFade)
+    return () => window.removeEventListener('resize', updateFade)
+  }, [updateFade, dir])
 
   const onTabKey = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
     const forward = dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight'
@@ -136,7 +150,12 @@ export function ServiceMenu() {
         <div
           role="tablist"
           aria-label={t.menu.tabsLabel}
-          className="no-scrollbar sticky top-[var(--header-h)] z-20 -mx-4 mt-10 flex gap-1 overflow-x-auto border-b border-line bg-ivory/95 px-4 backdrop-blur-md sm:mx-0 sm:px-0"
+          ref={tabList}
+          onScroll={updateFade}
+          // On phones the tabs scroll sideways; while more tabs are hidden past the edge, that edge fades.
+          className={`no-scrollbar sticky top-[var(--header-h)] z-20 -mx-4 mt-10 flex gap-1 overflow-x-auto border-b border-line bg-ivory/95 px-4 backdrop-blur-md sm:mx-0 sm:px-0 ${
+            moreTabs ? 'fade-end' : ''
+          }`}
         >
           {categories.map((c, i) => {
             const selected = c.id === category.id

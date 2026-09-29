@@ -222,6 +222,21 @@ test.describe('customer', () => {
   })
 })
 
+test.describe('staff on the public site', () => {
+  test('are asked to log out before requesting as a customer', async ({ page }) => {
+    await signIn(page, DEMO.staff)
+    await page.goto('/')
+    await page.evaluate(() => sessionStorage.clear())
+    await page.reload()
+    await openRequest(page)
+    await fillToDetails(page)
+    await expect(dialog(page).getByText('This is a staff account.', { exact: false })).toBeVisible()
+    await expect(dialog(page).getByRole('button', { name: 'Continue' })).toHaveCount(0)
+    await dialog(page).getByRole('button', { name: 'Log out' }).click()
+    await expect(dialog(page).getByRole('tab', { name: 'New account' })).toBeVisible()
+  })
+})
+
 test.describe('customer abroad', () => {
   test.use({ timezoneId: 'America/Los_Angeles' })
   test('dates follow Cairo, not the device', async ({ page }) => {

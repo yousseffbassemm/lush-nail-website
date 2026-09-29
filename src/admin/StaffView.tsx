@@ -5,30 +5,35 @@ import { formatPhone, isValidPhone } from '../booking/validation'
 import { api, ApiError, type User } from '../lib/api'
 import { PasswordInput } from '../auth/AuthPanel'
 import { Button } from '../components/ui/Button'
-import { Field, inputClass } from '../components/request/Field'
+import { describedBy, Field, inputBorder, inputClass } from '../components/request/Field'
+import { useAuth } from '../auth/AuthProvider'
 import { useAdminStrings } from './strings'
 import { ResetCodeDialog } from './ResetCodeDialog'
 
 export function StaffView({ user }: { user: User }) {
   const { t, pick } = useI18n()
   const s = useAdminStrings()
+  const { sessionEnded } = useAuth()
   const [staff, setStaff] = useState<User[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({ firstName: '', phone: '', email: '', password: '', role: 'staff', branchId: '' })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null)
   const [busy, setBusy] = useState(false)
   const [resetFor, setResetFor] = useState<User | null>(null)
 
   const load = useCallback(() => {
     api<{ staff: User[] }>('/admin/staff')
       .then(({ staff: list }) => setStaff(list))
-      .catch(() => setError(s.loadError))
-  }, [s])
+      .catch((e) => {
+        if (e instanceof ApiError && (e.code === 'unauthorized' || e.code === 'forbidden')) sessionEnded()
+        setError('loadError')
+      })
+  }, [sessionEnded])
 
   useEffect(load, [load])
 
-  const message = (code: string) => t.auth.errors[code] ?? s.errors[code] ?? t.auth.errors.server
+  const message = (code: string) => (code === 'loadError' ? s.loadError : (t.auth.errors[code] ?? s.errors[code] ?? t.auth.errors.server))
 
   const create = async (e: FormEvent) => {
     e.preventDefault()
@@ -43,11 +48,12 @@ export function StaffView({ user }: { user: User }) {
     try {
       await api('/admin/staff', { method: 'POST', body: { ...form, branchId: form.branchId || null } })
       setForm({ firstName: '', phone: '', email: '', password: '', role: 'staff', branchId: '' })
-      setNotice(s.staff.created)
+      setNotice({ text: s.staff.created, ok: true })
       load()
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'unauthorized') sessionEnded()
       if (err instanceof ApiError && Object.keys(err.fields).length) setFormErrors(err.fields)
-      else setNotice(message(err instanceof ApiError ? err.code : 'server'))
+      else setNotice({ text: message(err instanceof ApiError ? err.code : 'server'), ok: false })
     } finally {
       setBusy(false)
     }
@@ -59,7 +65,8 @@ export function StaffView({ user }: { user: User }) {
       await api(`/admin/staff/${member.id}`, { method: 'PATCH', body: patch })
       load()
     } catch (err) {
-      setError(message(err instanceof ApiError ? err.code : 'server'))
+      if (err instanceof ApiError && err.code === 'unauthorized') sessionEnded()
+      setError(err instanceof ApiError ? err.code : 'server')
     }
   }
 
@@ -72,10 +79,16 @@ export function StaffView({ user }: { user: User }) {
         <p className="mt-1 max-w-2xl text-sm text-taupe-ink">{s.staff.help}</p>
         {error && (
           <p role="alert" className="mt-4 rounded-xl bg-[#fbeceb] p-3 text-sm text-danger">
-            {error}
+            {message(error)}
           </p>
         )}
-        {!staff && !error && <p className="py-10 text-taupe-ink">{s.loading}</p>}
+        {!staff && !error && (
+          <ul className="mt-6 grid gap-3" aria-label={s.loading}>
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="skeleton h-24 rounded-2xl" />
+            ))}
+          </ul>
+        )}
         {staff && (
           <ul className="mt-6 grid gap-3">
             {staff.map((m) => {
@@ -148,13 +161,13 @@ export function StaffView({ user }: { user: User }) {
       <form noValidate onSubmit={create} className="grid content-start gap-4 rounded-[1.25rem] border border-line bg-paper p-5 sm:p-6">
         <h2 className="display text-[1.75rem] italic">{s.staff.add}</h2>
         <Field id="staff-name" label={s.staff.firstName} error={err('firstName')}>
-          <input id="staff-name" value={form.firstName} maxLength={60} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} className={`${inputClass} ${err('firstName') ? 'border-danger' : 'border-line-strong'}`} />
+          <input id="staff-name" value={form.firstName} maxLength={60} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} aria-invalid={err('firstName') ? true : undefined} aria-describedby={describedBy('staff-name', false, err('firstName'))} className={`${inputClass} ${inputBorder(err('firstName'))}`} />
         </Field>
         <Field id="staff-phone" label={s.staff.phone} error={err('phone')}>
-          <input id="staff-phone" type="tel" dir="ltr" value={form.phone} maxLength={24} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className={`${inputClass} ${err('phone') ? 'border-danger' : 'border-line-strong'} tabular rtl:text-right`} />
+          <input id="staff-phone" type="tel" dir="ltr" value={form.phone} maxLength={24} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} aria-invalid={err('phone') ? true : undefined} aria-describedby={describedBy('staff-phone', false, err('phone'))} className={`${inputClass} ${inputBorder(err('phone'))} tabular rtl:text-right`} />
         </Field>
         <Field id="staff-email" label={s.staff.email} optionalLabel={t.auth.optional} error={err('email')}>
-          <input id="staff-email" type="email" dir="ltr" value={form.email} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className={`${inputClass} ${err('email') ? 'border-danger' : 'border-line-strong'} rtl:text-right`} />
+          <input id="staff-email" type="email" dir="ltr" value={form.email} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} aria-invalid={err('email') ? true : undefined} aria-describedby={describedBy('staff-email', false, err('email'))} className={`${inputClass} ${inputBorder(err('email'))} rtl:text-right`} />
         </Field>
         <Field id="staff-password" label={s.staff.password} hint={s.staff.passwordHint} error={err('password')}>
           <PasswordInput id="staff-password" value={form.password} onChange={(v) => setForm((f) => ({ ...f, password: v }))} autoComplete="new-password" error={err('password')} hint />
@@ -180,8 +193,8 @@ export function StaffView({ user }: { user: User }) {
         <Button type="submit" disabled={busy} aria-busy={busy}>
           {s.staff.create}
         </Button>
-        <p role="status" className="text-sm text-taupe-ink">
-          {notice}
+        <p role="status" className={`text-sm ${notice?.ok === false ? 'text-danger' : 'text-[#2c5a36]'}`}>
+          {notice?.text}
         </p>
       </form>
       <ResetCodeDialog target={resetFor} onClose={() => setResetFor(null)} />

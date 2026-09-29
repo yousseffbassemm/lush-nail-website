@@ -69,14 +69,23 @@ export function uniquePhone() {
 
 /** Waits until entrance animations and transitions have settled (looping ones are ignored). */
 export async function settle(page: Page) {
-  await page.evaluate(() =>
-    Promise.all(
-      document
-        .getAnimations()
-        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
-        .map((a) => a.finished.catch(() => undefined)),
-    ),
-  )
+  await page.evaluate(async () => {
+    const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    const running = () =>
+      document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity)
+    // Content that arrives a moment later (a list loading, a section revealing) starts new motion,
+    // so wait until nothing has moved for a short while.
+    for (let round = 0; round < 40; round++) {
+      await frames()
+      const list = running()
+      if (list.length) {
+        await Promise.all(list.map((a) => a.finished.catch(() => undefined)))
+        continue
+      }
+      await new Promise((r) => setTimeout(r, 150))
+      if (!running().length) return
+    }
+  })
 }
 
 export async function expectNoA11yViolations(page: Page, label: string) {

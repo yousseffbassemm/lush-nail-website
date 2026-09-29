@@ -196,8 +196,15 @@ function AccountDetails({ user }: { user: User }) {
             className={`${inputClass} ${inputBorder(err(profileState.errors, 'firstName'))}`}
           />
         </Field>
-        <Field id={id('phone')} label={t.auth.phone}>
-          <input id={id('phone')} value={formatPhone(user.phone)} readOnly dir="ltr" className={`${inputClass} border-line bg-ivory tabular rtl:text-right`} />
+        <Field id={id('phone')} label={t.auth.phone} hint={t.account.phoneLocked}>
+          <input
+            id={id('phone')}
+            value={formatPhone(user.phone)}
+            readOnly
+            dir="ltr"
+            aria-describedby={describedBy(id('phone'), true)}
+            className={`${inputClass} cursor-default border-dashed border-line-strong bg-transparent text-charcoal-soft tabular focus:border-line-strong focus:shadow-none rtl:text-right`}
+          />
         </Field>
         <Field id={id('email')} label={t.auth.email} optionalLabel={t.auth.optional} error={err(profileState.errors, 'email')}>
           <input

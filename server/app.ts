@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { secureHeaders } from 'hono/secure-headers'
 import { bodyLimit } from 'hono/body-limit'
+import { compress } from 'hono/compress'
 import type { z } from 'zod'
 import { toE164 } from '../src/booking/validation'
 import { nowInCairo } from '../src/booking/cairoTime'
@@ -124,6 +125,8 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false, ra
   // ---------------------------------------------------------------- middleware
 
   app.use('/api/*', secureHeaders({ crossOriginResourcePolicy: 'same-origin', xFrameOptions: 'DENY' }))
+  // The dashboard's lists can run to tens of kilobytes of JSON; they compress well.
+  app.use('/api/*', compress())
   // Every legitimate request body is tiny; refuse anything large before parsing it.
   app.use('/api/*', bodyLimit({ maxSize: 16 * 1024, onError: (c) => c.json({ error: 'too_large' }, 413) }))
 
@@ -271,6 +274,8 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false, ra
   app.post('/api/requests', async (c) => {
     const user = requireUser(c)
     if (!user) return fail(c, 401, 'unauthorized')
+    // Requests belong to customers; a staff account would put staff names in the booking list.
+    if (user.role !== 'customer') return fail(c, 403, 'staff_account')
     if (!limits.request.take(`req|${user.id}`)) return fail(c, 429, 'rate_limited')
     const parsed = requestSchema.safeParse(await readJson(c))
     if (!parsed.success) return invalid(c, parsed.error)
