@@ -119,6 +119,11 @@ function Gradients({ id }: { id: string }) {
         <stop offset="0" stopColor="#fff" stopOpacity="0.9" />
         <stop offset="1" stopColor="#fff" stopOpacity="0" />
       </linearGradient>
+      {/* A bare, buffed nail: what the plate shows before any colour goes on. */}
+      <linearGradient id={`${id}-bare`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#fdf8f5" />
+        <stop offset="1" stopColor="#f2e0d8" />
+      </linearGradient>
       <filter id={`${id}-shadow`} x="-30%" y="-30%" width="160%" height="160%">
         <feGaussianBlur stdDeviation="7" />
       </filter>
@@ -126,31 +131,77 @@ function Gradients({ id }: { id: string }) {
   )
 }
 
-const BASE_FILL: Record<Finish, string> = {
-  nude: 'nude',
-  french: 'sheer',
-  gilded: 'sheer',
-  chrome: 'chrome',
-  cateye: 'plum',
-  ombre: 'ombre',
-  art: 'nude',
-  red: 'red',
-  milky: 'milky',
+/**
+ * Polish colour for each finish, from the free edge (0) to the cuticle (1).
+ * Chrome runs corner to corner so it catches the light like a mirror powder.
+ */
+const POLISH: Record<Finish, { stops: [number, string][]; diagonal?: boolean }> = {
+  nude: { stops: [[0, '#efcdbf'], [1, '#d9a595']] },
+  art: { stops: [[0, '#efcdbf'], [1, '#d9a595']] },
+  french: { stops: [[0, '#f6dcd4'], [1, '#e9bdb2']] },
+  gilded: { stops: [[0, '#f6dcd4'], [1, '#e9bdb2']] },
+  chrome: {
+    diagonal: true,
+    stops: [[0, '#f6eff2'], [0.22, '#d9cbd5'], [0.42, '#ffffff'], [0.6, '#cdbfcc'], [0.8, '#f3e9ee'], [1, '#bba9b9']],
+  },
+  cateye: { stops: [[0, '#57283f'], [1, '#2c1320']] },
+  ombre: { stops: [[0, '#fffaf6'], [0.38, '#fbeee8'], [1, '#e2b1a4']] },
+  red: { stops: [[0, '#b8243a'], [1, '#7a0f20']] },
+  milky: { stops: [[0, '#f8e2de'], [1, '#efcbc6']] },
 }
+
+/**
+ * The polish gradient in the nail's own coordinates. The brush strokes are straight lines, and a
+ * gradient sized to a line's zero-width box would paint nothing, so it's pinned to the nail instead.
+ */
+function PolishGradient({ id, finish, w, len }: { id: string; finish: Finish; w: number; len: number }) {
+  const { stops, diagonal } = POLISH[finish]
+  return (
+    <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={diagonal ? -w / 2 : 0} y1={-len} x2={diagonal ? w / 2 : 0} y2={w * 0.25}>
+      {stops.map(([offset, color]) => (
+        <stop key={offset} offset={offset} stopColor={color} />
+      ))}
+    </linearGradient>
+  )
+}
+
+/** Where each brush stroke runs, as a share of the nail's width: down the centre first, then each side. */
+const STROKES = [0, -0.3, 0.3]
 
 function Nail({ spec, id, index }: { spec: NailSpec; id: string; index: number }) {
   const { w, shape, finish } = spec
   const len = spec.len * SHAPE_LENGTH[shape]
   const d = nailPath(shape, w, len)
   const clip = `${id}-clip-${index}`
+  const polish = `${id}-polish-${index}`
   const glossStrength = finish === 'cateye' || finish === 'red' ? 0.5 : 0.62
   return (
-    <g transform={`translate(${spec.x} ${spec.y}) rotate(${spec.angle})`}>
+    <g transform={`translate(${spec.x} ${spec.y}) rotate(${spec.angle})`} style={{ '--n': index } as CSSProperties}>
       <clipPath id={clip}>
         <path d={d} />
       </clipPath>
-      <path d={d} fill={`url(#${id}-${BASE_FILL[finish]})`} />
+      <PolishGradient id={polish} finish={finish} w={w} len={len} />
+      <path d={d} fill={`url(#${id}-bare)`} />
       <g clipPath={`url(#${clip})`}>
+        {/* The bare nail's natural white free edge, covered once the polish goes on. */}
+        <path d={tipPath(w, len, 0.14)} fill="#ffffff" opacity="0.75" />
+        {/* Colour goes on the way a technician paints a nail: one stroke down the centre, then one down each side.
+            Each stroke starts below the cuticle and runs past the free edge, so together they cover the nail. */}
+        {STROKES.map((x, s) => (
+          <path
+            key={s}
+            className="paint-stroke"
+            style={{ '--s': s } as CSSProperties}
+            d={`M ${x * w} ${w * 0.45} L ${x * w} ${-len * 1.08}`}
+            pathLength={1}
+            fill="none"
+            stroke={`url(#${polish})`}
+            strokeWidth={w * 0.46}
+            strokeLinecap="round"
+          />
+        ))}
+        {/* Tips, cat-eye light and hand-painted art go on once the colour is down. */}
+        <g className="nail-detail">
         {(finish === 'french' || finish === 'gilded') && (
           <>
             <path d={tipPath(w, len, finish === 'gilded' ? 0.3 : 0.27)} fill="#fffcf9" />
@@ -169,9 +220,11 @@ function Nail({ spec, id, index }: { spec: NailSpec; id: string; index: number }
           </>
         )}
         {finish === 'art' && !spec.accent && <circle cx={0} cy={-len * 0.5} r={w * 0.04} fill="#c9a25c" opacity="0.9" />}
+        </g>
         {/* Cuticle edge: a faint rim that gives the nail thickness. */}
         <path d={d} fill="none" stroke="#000" strokeOpacity="0.06" strokeWidth={w * 0.05} />
-        {/* Gloss: long highlight on the left, a softer one on the right. */}
+        {/* Top coat. Gloss: long highlight on the left, a softer one on the right. */}
+        <g className="top-coat">
         <path
           d={`M ${-w * 0.25} ${-len * 0.12} C ${-w * 0.3} ${-len * 0.45} ${-w * 0.22} ${-len * 0.74} ${-w * 0.05} ${-len * 0.88}`}
           fill="none"
@@ -188,6 +241,7 @@ function Nail({ spec, id, index }: { spec: NailSpec; id: string; index: number }
           strokeWidth={w * 0.05}
           strokeLinecap="round"
         />
+        </g>
       </g>
     </g>
   )
@@ -274,11 +328,14 @@ interface PlateProps {
   className?: string
   /** Accessible description; omit when the plate is decorative. */
   label?: string
-  /** Deal the nails in one by one when the plate first appears (hero). */
-  animateIn?: boolean
+  /**
+   * Paint the nails in, three strokes at a time: `load` as the page opens (hero), `reveal` when the
+   * plate first scrolls into view (gallery). With reduced motion they're simply shown finished.
+   */
+  paint?: 'load' | 'reveal'
 }
 
-export function NailPlate({ layout, shape, finishes, tone = 'blush', fieldVariant = 'a', softField = true, className, label, animateIn = false }: PlateProps) {
+export function NailPlate({ layout, shape, finishes, tone = 'blush', fieldVariant = 'a', softField = true, className, label, paint }: PlateProps) {
   const rawId = useId()
   const id = `n${rawId.replace(/[^a-zA-Z0-9]/g, '')}`
   const { w, h } = VIEWBOX[layout]
@@ -287,7 +344,7 @@ export function NailPlate({ layout, shape, finishes, tone = 'blush', fieldVarian
     <svg
       viewBox={`0 0 ${w} ${h}`}
       preserveAspectRatio="xMidYMid slice"
-      className={className}
+      className={`${className ?? ''}${paint ? ` paint-${paint}` : ''}`}
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
@@ -295,21 +352,6 @@ export function NailPlate({ layout, shape, finishes, tone = 'blush', fieldVarian
     >
       <Gradients id={id} />
       <LushField tone={tone} variant={fieldVariant} soft={softField} box={{ width: w, height: h }} />
-      {animateIn &&
-        nails.map((n, i) => (
-          <g key={i} className="nail-in" style={{ '--i': i } as CSSProperties}>
-            <path
-              d={nailPath(n.shape, n.w, n.len * SHAPE_LENGTH[n.shape])}
-              transform={`translate(${n.x + 5} ${n.y + 10}) rotate(${n.angle})`}
-              fill="#7d4a3f"
-              opacity="0.32"
-              filter={`url(#${id}-shadow)`}
-            />
-            <Nail spec={n} id={id} index={i} />
-          </g>
-        ))}
-      {!animateIn && (
-      <>
       <g filter={`url(#${id}-shadow)`} opacity="0.32">
         {nails.map((n, i) => (
           <path
@@ -323,8 +365,6 @@ export function NailPlate({ layout, shape, finishes, tone = 'blush', fieldVarian
       {nails.map((n, i) => (
         <Nail key={i} spec={n} id={id} index={i} />
       ))}
-      </>
-      )}
     </svg>
   )
 }

@@ -303,8 +303,11 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false, ra
     if (!request || request.user_id !== user.id) return fail(c, 404, 'not_found')
     if (!CUSTOMER_CANCELLABLE.includes(request.status)) return fail(c, 409, 'invalid_transition')
     // Once the day has passed there is nothing left to cancel; the branch records what happened.
+    const now = nowInCairo()
     const day = request.status === 'confirmed' ? request.confirmed_date : request.preferred_date
-    if (day && day < nowInCairo().date) return fail(c, 409, 'too_late')
+    // A confirmed appointment can't be cancelled here once its time has come, even on the day itself.
+    const started = request.status === 'confirmed' && day === now.date && !!request.confirmed_time && request.confirmed_time <= now.time
+    if ((day && day < now.date) || started) return fail(c, 409, 'too_late')
     const updated = updateStatus(db, request.id, user.id, { status: 'cancelled' }, 'cancelled_by_customer')
     return c.json({ request: serializeRequest(updated) })
   })
@@ -353,8 +356,11 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false, ra
     if (!request || !inScope(scopeFor(staff), request)) return fail(c, 404, 'not_found')
     const parsed = statusChangeSchema.safeParse(await readJson(c))
     if (!parsed.success) return invalid(c, parsed.error)
+    // Someone else changed it after this staff member opened it: don't apply an action meant for the old state.
+    if (parsed.data.from && parsed.data.from !== request.status) return fail(c, 409, 'stale')
     if (!STATUS_TRANSITIONS[request.status].includes(parsed.data.status)) return fail(c, 409, 'invalid_transition')
-    const updated = updateStatus(db, request.id, staff.id, parsed.data)
+    const { from: _from, ...change } = parsed.data
+    const updated = updateStatus(db, request.id, staff.id, change)
     return c.json({ request: serializeRequest(updated), events: listEvents(db, request.id), transitions: STATUS_TRANSITIONS[updated.status] })
   })
 

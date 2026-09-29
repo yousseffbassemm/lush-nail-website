@@ -81,6 +81,8 @@ export const requestSchema = z
 export const statusChangeSchema = z
   .object({
     status: z.enum(REQUEST_STATUSES),
+    /** The status the staff member was looking at; if it has changed since, the change is refused. */
+    from: z.enum(REQUEST_STATUSES).optional(),
     confirmedDate: z.string().nullish(),
     confirmedTime: hhmm.nullish(),
     customerMessage: z.string().trim().max(300, 'tooLong').nullish(),

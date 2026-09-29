@@ -201,7 +201,12 @@ test('confirming needs a date and time, and the customer sees the confirmation',
   // Internal notes never reach the customer.
   assert.equal(JSON.stringify((await customer.get('/api/requests')).json).includes('Nada'), false)
 
-  await admin.post(`/api/admin/requests/${r.id}/status`, { status: 'completed' })
+  // An action based on an out-of-date view is refused rather than applied to the new state.
+  const stale = await admin.post(`/api/admin/requests/${r.id}/status`, { status: 'declined', from: 'new' })
+  assert.equal(stale.status, 409)
+  assert.equal(stale.json.error, 'stale')
+
+  await admin.post(`/api/admin/requests/${r.id}/status`, { status: 'completed', from: 'confirmed' })
   assert.equal((await admin.post(`/api/admin/requests/${r.id}/status`, { status: 'confirmed', confirmedDate: tomorrow(), confirmedTime: '10:00' })).status, 409)
 })
 
@@ -270,6 +275,9 @@ test('confirmed days must be ahead, and customers cannot cancel once the day has
   const late = await customer.post(`/api/requests/${r.reference}/cancel`)
   assert.equal(late.status, 409)
   assert.equal(late.json.error, 'too_late')
+  // The same goes for later on the day itself, once the confirmed time has come.
+  db.prepare("UPDATE requests SET confirmed_date = ?, confirmed_time = '00:00' WHERE id = ?").run(nowInCairo().date, r.id)
+  assert.equal((await customer.post(`/api/requests/${r.reference}/cancel`)).json.error, 'too_late')
 })
 
 test('searching by reference or name never matches phone numbers by accident', async () => {

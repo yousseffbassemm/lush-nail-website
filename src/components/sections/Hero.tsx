@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useRef, type CSSProperties, type RefObject } from 'react'
 import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { branches } from '../../content/site'
@@ -12,15 +12,58 @@ import { Icon } from '../ui/Icon'
 
 const seq = (i: number) => ({ '--i': i }) as CSSProperties
 
+/**
+ * With a mouse or trackpad, the layers of the Lush field drift apart a little as the pointer moves,
+ * so the pattern reads as layered colour rather than a flat print. Touch screens and reduced motion
+ * keep it still.
+ */
+function useFieldDepth(section: RefObject<HTMLElement | null>, field: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const host = section.current
+    const target = field.current
+    if (!host || !target) return
+    if (!window.matchMedia('(pointer: fine)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let frame = 0
+    const onMove = (e: PointerEvent) => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        const box = host.getBoundingClientRect()
+        const x = ((e.clientX - box.left) / box.width) * 2 - 1
+        const y = ((e.clientY - box.top) / box.height) * 2 - 1
+        target.style.setProperty('--fx', x.toFixed(3))
+        target.style.setProperty('--fy', y.toFixed(3))
+      })
+    }
+    const onLeave = () => {
+      window.cancelAnimationFrame(frame)
+      target.style.setProperty('--fx', '0')
+      target.style.setProperty('--fy', '0')
+    }
+    host.addEventListener('pointermove', onMove)
+    host.addEventListener('pointerleave', onLeave)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      host.removeEventListener('pointermove', onMove)
+      host.removeEventListener('pointerleave', onLeave)
+    }
+  }, [section, field])
+}
+
 export function Hero() {
   const { t, pick } = useI18n()
   const { open } = useRequest()
+  const sectionRef = useRef<HTMLElement>(null)
+  const fieldRef = useRef<HTMLDivElement>(null)
+  useFieldDepth(sectionRef, fieldRef)
 
   return (
-    <section id="top" aria-labelledby="hero-title" className="relative isolate overflow-hidden">
+    <section ref={sectionRef} id="top" aria-labelledby="hero-title" className="relative isolate overflow-hidden">
       {/* The Lush field: full-bleed behind the visual, running off the page edge. */}
-      <div className="absolute inset-x-0 bottom-0 -z-10 h-[23rem] overflow-hidden sm:h-[30rem] lg:inset-y-0 lg:start-auto lg:end-0 lg:h-auto lg:w-[47%] lg:rounded-es-[3rem]">
-        <LushField className="field-in h-full w-full" variant="b" />
+      <div
+        ref={fieldRef}
+        className="absolute inset-x-0 bottom-0 -z-10 h-[23rem] overflow-hidden sm:h-[30rem] lg:inset-y-0 lg:start-auto lg:end-0 lg:h-auto lg:w-[47%] lg:rounded-es-[3rem]"
+      >
+        <LushField className="field-in h-full w-full" variant="b" depth />
       </div>
 
       <div className="container-page grid items-center gap-x-10 lg:min-h-[min(calc(100svh-var(--header-h)),56rem)] lg:grid-cols-12">
@@ -106,7 +149,7 @@ export function Hero() {
                     tone="cream"
                     className="h-full w-full"
                     label={t.hero.plateAlt}
-                    animateIn
+                    paint="load"
                   />
                 )}
               </div>

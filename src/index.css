@@ -254,6 +254,38 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* Primary buttons: room for the top-coat shine that crosses them on hover. */
+  .btn-gloss {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .btn-gloss::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.2) 50%, transparent 70%);
+    transform: translateX(-140%) skewX(-14deg);
+  }
+
+  /*
+   * A chosen menu row fills with colour from its leading edge, like a stroke of polish.
+   * Clip-path keeps the rounded corners true while it grows.
+   */
+  .paint-fill {
+    clip-path: inset(0 100% 0 0 round 0.75rem);
+    transition: clip-path 520ms var(--ease-out-soft);
+  }
+  [dir='rtl'] .paint-fill {
+    clip-path: inset(0 0 0 100% round 0.75rem);
+  }
+  .paint-fill[data-on='true'],
+  [dir='rtl'] .paint-fill[data-on='true'] {
+    clip-path: inset(0 0 0 0 round 0.75rem);
+  }
 }
 
 /* A sideways-scrolling row whose far edge fades while more of it is hidden there. */
@@ -319,10 +351,32 @@ input[type='search']::-webkit-search-cancel-button {
     transform: translateY(28px) scale(0.965);
   }
 }
-@keyframes nail-in {
+/* A brush stroke of polish, cuticle to free edge (the stroke path has pathLength 1). */
+@keyframes brush {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes polish-detail {
   from {
     opacity: 0;
-    transform: translateY(40px) rotate(-5deg);
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Top coat: the shine slides up the nail as it goes on. */
+@keyframes top-coat {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 @keyframes field-in {
@@ -427,18 +481,63 @@ input[type='search']::-webkit-search-cancel-button {
   .hero-card {
     animation: card-in 1100ms var(--ease-out-soft) 250ms both;
   }
-  .nail-in {
-    transform-box: fill-box;
-    transform-origin: 50% 100%;
-    animation: nail-in 900ms var(--ease-out-soft) both;
-    animation-delay: calc(var(--i, 0) * 95ms + 700ms);
-  }
   .spa-in {
     animation:
       card-in 900ms var(--ease-out-soft) 1000ms both,
       float 7s ease-in-out 2.2s infinite;
   }
-  /* One sweep of light across the hero plate once the nails have landed, and again on hover. */
+  /* Hero field layers drift with the pointer; deeper tones move further (see Hero.tsx). */
+  .field-depth .field-layer {
+    transform: translate(calc(var(--fx, 0) * var(--d) * -2.2px), calc(var(--fy, 0) * var(--d) * -1.6px));
+    transition: transform 1.1s var(--ease-out-soft);
+  }
+
+  /*
+   * The three-stroke manicure. Illustrated nails start bare; each is painted the way a technician
+   * works — a stroke down the centre, then one down each side — then tips or art go on, then top coat.
+   * --n is the nail's place in the set and --s the stroke. `paint-load` plays as the hero opens;
+   * `paint-reveal` waits until its gallery tile scrolls into view.
+   */
+  .paint-load,
+  .paint-reveal {
+    --paint-start: 1150ms;
+    --paint-nail: 330ms;
+    --paint-stroke: 150ms;
+  }
+  .paint-reveal {
+    --paint-start: 380ms;
+    --paint-nail: 260ms;
+    --paint-stroke: 130ms;
+  }
+  .paint-load .paint-stroke,
+  .paint-reveal .paint-stroke {
+    stroke-dasharray: 1 1;
+  }
+  .paint-load .paint-stroke,
+  .is-visible .paint-reveal .paint-stroke {
+    animation: brush 380ms cubic-bezier(0.5, 0, 0.3, 1) both;
+    animation-delay: calc(var(--paint-start) + var(--n) * var(--paint-nail) + var(--s) * var(--paint-stroke));
+  }
+  .paint-load .nail-detail,
+  .is-visible .paint-reveal .nail-detail {
+    animation: polish-detail 380ms ease-out both;
+    animation-delay: calc(var(--paint-start) + var(--n) * var(--paint-nail) + 3 * var(--paint-stroke) + 260ms);
+  }
+  .paint-load .top-coat,
+  .is-visible .paint-reveal .top-coat {
+    animation: top-coat 650ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--paint-start) + var(--n) * var(--paint-nail) + 3 * var(--paint-stroke) + 420ms);
+  }
+  /* Before its tile is seen, a gallery plate waits with bare nails. */
+  .paint-reveal .paint-stroke {
+    stroke-dashoffset: 1;
+  }
+  .paint-reveal .nail-detail,
+  .paint-reveal .top-coat {
+    opacity: 0;
+  }
+
+  /* A sweep of light across the hero plate on hover, like turning a fresh set under the lamp. */
   .sheen::after {
     content: '';
     position: absolute;
@@ -446,7 +545,9 @@ input[type='search']::-webkit-search-cancel-button {
     pointer-events: none;
     background: linear-gradient(100deg, transparent 32%, rgb(255 255 255 / 0.5) 50%, transparent 68%);
     transform: translateX(-140%) skewX(-14deg);
-    animation: sheen 1.5s ease-in-out 1.9s both;
+  }
+  .btn-gloss:not(:disabled):hover::after {
+    animation: sheen 900ms ease-in-out;
   }
   .sheen:hover::after,
   .group:hover .tile-sheen::after,

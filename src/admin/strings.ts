@@ -145,6 +145,7 @@ const en = {
   },
   errors: {
     invalid_transition: 'That change isn’t possible from the current status. Refresh and try again.',
+    stale: 'Someone else updated this request a moment ago. Its latest status is shown below; check it before you act.',
     self_lockout: 'You can’t disable your own account or remove your own admin role.',
     not_found: 'That item no longer exists.',
     date: 'Choose a date.',
@@ -301,6 +302,7 @@ const ar: AdminStrings = {
   },
   errors: {
     invalid_transition: 'التغيير ده مش ممكن من الحالة الحالية. حدثي الصفحة وجربي تاني.',
+    stale: 'حد تاني حدّث الطلب ده من لحظة. آخر حالة ليه ظاهرة تحت، راجعيها قبل ما تكملي.',
     self_lockout: 'مينفعش توقفي حسابك أو تشيلي صلاحية المدير من نفسك.',
     not_found: 'العنصر ده مبقاش موجود.',
     date: 'اختاري اليوم.',

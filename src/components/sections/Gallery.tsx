@@ -38,7 +38,21 @@ const TILE_LAYOUT: Record<Look['size'], PlateLayout> = {
   regular: 'portrait',
 }
 
-function LookImage({ look, layout, index, className, label }: { look: Look; layout: PlateLayout; index: number; className?: string; label?: string }) {
+function LookImage({
+  look,
+  layout,
+  index,
+  className,
+  label,
+  paint,
+}: {
+  look: Look
+  layout: PlateLayout
+  index: number
+  className?: string
+  label?: string
+  paint?: 'reveal'
+}) {
   const { pick } = useI18n()
   if (look.photo) {
     return (
@@ -63,6 +77,7 @@ function LookImage({ look, layout, index, className, label }: { look: Look; layo
       fieldVariant={FIELD_VARIANT[index % 4]}
       className={className}
       label={label}
+      paint={paint}
     />
   )
 }
@@ -239,6 +254,7 @@ export function Gallery() {
                       look={look}
                       layout={TILE_LAYOUT[look.size]}
                       index={i}
+                      paint="reveal"
                       className="h-full w-full transition-transform duration-300 ease-out group-hover:scale-[1.025] motion-reduce:group-hover:scale-100"
                     />
                   </span>

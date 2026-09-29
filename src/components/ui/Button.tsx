@@ -9,7 +9,8 @@ const base =
   'disabled:cursor-not-allowed disabled:opacity-50'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-charcoal text-ivory hover:bg-charcoal-soft shadow-[0_1px_0_rgb(0_0_0/0.04)]',
+  // `btn-gloss`: a top-coat shine crosses the button on hover (see index.css).
+  primary: 'btn-gloss bg-charcoal text-ivory hover:bg-charcoal-soft shadow-[0_1px_0_rgb(0_0_0/0.04)]',
   secondary: 'border border-charcoal/70 text-charcoal hover:border-charcoal hover:bg-charcoal hover:text-ivory',
   quiet: 'text-charcoal hover:bg-blush-soft',
   light: 'bg-ivory text-charcoal hover:bg-paper',

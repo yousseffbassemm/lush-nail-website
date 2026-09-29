@@ -76,6 +76,16 @@ export function RequestDrawer({ id, onClose, onChanged }: { id: number | null; o
     if (e instanceof ApiError && Object.keys(e.fields).length) {
       setFormErrors(Object.fromEntries(Object.entries(e.fields).map(([k, v]) => [k, s.errors[v] ?? v])))
     } else setError(s.errors[e instanceof ApiError ? e.code : 'not_found'] ?? s.loadError)
+    // Someone else changed this request meanwhile: show its current state and actions.
+    if (e instanceof ApiError && (e.code === 'invalid_transition' || e.code === 'stale') && id !== null) {
+      setPending(null)
+      api<Detail>(`/admin/requests/${id}`)
+        .then((fresh) => {
+          setDetail(fresh)
+          onChanged()
+        })
+        .catch(() => undefined)
+    }
   }
 
   const start = (p: Pending) => {
@@ -111,6 +121,7 @@ export function RequestDrawer({ id, onClose, onChanged }: { id: number | null; o
         method: 'POST',
         body: {
           status: p.status,
+          from: detail?.request.status,
           ...(withDate ? { confirmedDate: form.date, confirmedTime: form.time } : {}),
           ...(p.kind !== 'simple' && form.message.trim() ? { customerMessage: form.message.trim() } : {}),
         },

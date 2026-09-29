@@ -33,12 +33,15 @@ function RequestCard({ request, onChange, onStale }: { request: AppointmentReque
   const [error, setError] = useState<string | null>(null)
   const branch = getBranch(request.branchId as BranchId)
   const look = findLook(request.lookRef)
-  const today = nowInCairo().date
+  const now = nowInCairo()
+  const today = now.date
   const confirmed = request.status === 'confirmed'
   const date = confirmed ? request.confirmedDate : request.preferredDate
   const time = confirmed ? request.confirmedTime : request.preferredTime
   const open = OPEN_STATUSES.includes(request.status)
-  const canCancel = open && (date ?? '') >= today
+  // Same rule as the server: nothing to cancel once the day has passed, or a confirmed time has come.
+  const started = confirmed && date === today && !!time && time <= now.time
+  const canCancel = open && (date ?? '') >= today && !started
   const passedUnconfirmed = open && !confirmed && (date ?? '') < today
 
   const titleParts = [

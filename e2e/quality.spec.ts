@@ -123,6 +123,27 @@ test.describe('accessibility and motion', () => {
     expect(await hidden()).toBe(0)
   })
 
+  test('every illustrated nail ends up painted, with or without motion', async ({ page }) => {
+    await page.goto('/')
+    const unfinished = () =>
+      page.evaluate(() => {
+        const strokes = [...document.querySelectorAll('.paint-stroke')].filter((el) => parseFloat(getComputedStyle(el).strokeDashoffset) !== 0)
+        const coats = [...document.querySelectorAll('.nail-detail, .top-coat')].filter((el) => getComputedStyle(el).opacity !== '1')
+        return { strokes: strokes.length, coats: coats.length, total: document.querySelectorAll('.paint-stroke').length }
+      })
+    if (project() === 'motion') {
+      // The gallery waits with bare nails until it's seen, then paints them.
+      const before = await unfinished()
+      expect(before.strokes).toBeGreaterThan(0)
+      await page.getByRole('button', { name: 'View Pearl chrome' }).scrollIntoViewIfNeeded()
+      await page.getByRole('button', { name: 'View Classic red' }).scrollIntoViewIfNeeded()
+      await settle(page)
+    }
+    const after = await unfinished()
+    expect(after.total).toBeGreaterThan(30)
+    expect(after).toMatchObject({ strokes: 0, coats: 0 })
+  })
+
   test('the hero text is readable within a second and a half', async ({ page }) => {
     await page.goto('/')
     const started = Date.now()

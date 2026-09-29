@@ -94,7 +94,8 @@ export function StaffView({ user }: { user: User }) {
             {staff.map((m) => {
               const self = m.id === user.id
               return (
-                <li key={m.id} className={`rounded-2xl border border-line bg-paper p-4 ${m.disabled ? 'opacity-70' : ''}`}>
+                // Disabled accounts look set aside (dashed, unfilled) without fading their text below readable contrast.
+                <li key={m.id} className={`rounded-2xl border p-4 ${m.disabled ? 'border-dashed border-line-strong bg-transparent' : 'border-line bg-paper'}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-medium">
@@ -103,7 +104,9 @@ export function StaffView({ user }: { user: User }) {
                       <bdi dir="ltr" className="tabular text-sm text-taupe-ink">
                         {formatPhone(m.phone)}
                       </bdi>
-                      <p className="mt-1 text-xs text-taupe-ink">{m.disabled ? s.staff.disabled : s.staff.active}</p>
+                      <p className={`mt-1 text-xs ${m.disabled ? 'font-medium text-danger' : 'text-taupe-ink'}`}>
+                        {m.disabled ? s.staff.disabled : s.staff.active}
+                      </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <label>

@@ -42,10 +42,11 @@ function ServiceRow({ service, showDuration, index }: { service: Service; showDu
           const added = toggleService(service.id)
           announce(added ? t.menu.added(name) : t.menu.removed(name))
         }}
-        className={`group grid w-full grid-cols-[1fr_auto] items-start gap-x-3 rounded-xl px-3 py-3 text-start transition-colors duration-200 sm:gap-x-4 sm:px-4 ${
-          selected ? 'bg-blush-soft' : 'hover:bg-blush-soft/60'
+        className={`group relative isolate grid w-full grid-cols-[1fr_auto] items-start gap-x-3 rounded-xl px-3 py-3 text-start transition-colors duration-200 sm:gap-x-4 sm:px-4 ${
+          selected ? '' : 'hover:bg-blush-soft/60'
         }`}
       >
+        <span aria-hidden="true" data-on={selected} className="paint-fill absolute inset-0 -z-10 bg-blush-soft" />
         <span className="min-w-0">
           <span className="flex items-end gap-3">
             <span className="min-w-0 text-[1.02rem] leading-snug text-charcoal">{name}</span>

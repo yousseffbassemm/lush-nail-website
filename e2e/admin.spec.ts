@@ -106,6 +106,26 @@ test.describe('staff dashboard', () => {
     await expect(drawer(page)).toHaveCount(0)
   })
 
+  test('when two people act on one request, the second sees what the first did', async ({ page, guard }) => {
+    guard.allow(/http 409: POST \/api\/admin\/requests\/\d+\/status/)
+    guard.allow(/status of 409/)
+    const customer = await customerWithRequest()
+    await signIn(page, DEMO.staff)
+    await page.goto('/admin')
+    await openRequest(page, customer.request.reference)
+    // Meanwhile, the owner declines it from another device.
+    const admin = await apiAs(DEMO.admin)
+    await admin.post(`/api/admin/requests/${customer.request.id}/status`, { data: { status: 'declined', customerMessage: 'Fully booked.' } })
+    await admin.dispose()
+    // "Mark as contacted" was meant for a new request; it mustn't quietly reopen a declined one.
+    await drawer(page).getByRole('button', { name: 'Mark as contacted' }).click()
+    await expect(drawer(page).getByRole('alert')).toContainText('Someone else updated this request')
+    await expect(drawer(page).getByText('Declined').first()).toBeVisible()
+    await expect(drawer(page).getByRole('button', { name: 'Reopen' })).toBeVisible()
+    const mine = ((await (await customer.ctx.get('/api/requests')).json()) as { requests: { status: string }[] }).requests[0]
+    expect(mine.status).toBe('declined')
+  })
+
   test('status filters, today view and search', async ({ page }) => {
     const customer = await customerWithRequest({ date: cairoDate(1), time: '10:00' })
     const admin = await apiAs(DEMO.admin)

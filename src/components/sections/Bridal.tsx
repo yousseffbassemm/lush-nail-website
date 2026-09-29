@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/I18nProvider'
 import { useRequest } from '../../booking/RequestProvider'
 import { bridalOffer, categories } from '../../content/services'
 import { LushField } from '../brand/LushField'
+import { AlmondMark, FieldEdge } from '../brand/Marks'
 import { Button } from '../ui/Button'
 
 export function Bridal() {
@@ -13,6 +14,8 @@ export function Bridal() {
   return (
     <section id="bridal" aria-labelledby="bridal-title" className="relative isolate overflow-hidden py-20 sm:py-24 lg:py-32">
       <LushField className="absolute inset-0 -z-10 h-full w-full" variant="d" soft />
+      <FieldEdge side="top" className="text-ivory" />
+      <FieldEdge side="bottom" className="text-ivory" />
       <div className="container-page">
         <div className="reveal mx-auto max-w-[44rem] text-center">
           <img src="/brand/lush-butterfly.svg" alt="" width={66} height={74} className="mx-auto h-12 w-auto" loading="lazy" />
@@ -43,7 +46,7 @@ export function Bridal() {
                   {pkg.includes &&
                     pick(pkg.includes).map((item) => (
                       <li key={item} className="flex gap-3">
-                        <span className="mt-[0.7em] h-px w-3 shrink-0 bg-gold" aria-hidden="true" />
+                        <AlmondMark className="mt-[0.3em] h-[0.95em] w-auto shrink-0 text-gold" />
                         <span>{item}</span>
                       </li>
                     ))}

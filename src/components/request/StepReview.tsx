@@ -11,6 +11,7 @@ import { FIELD_STEP, sendRequest } from '../../booking/provider'
 import { useRequest } from '../../booking/RequestProvider'
 import type { RequestDraft } from '../../booking/types'
 import { ApiError } from '../../lib/api'
+import { useAnnounce } from '../../lib/announce'
 import { navigate } from '../../lib/router'
 import { Button, LinkButton } from '../ui/Button'
 import { Icon } from '../ui/Icon'
@@ -71,7 +72,11 @@ interface Props {
 export function StepReview({ draft, goToStep, outcome, setOutcome, onDone, onNewRequest }: Props) {
   const { t, lang, pick, price } = useI18n()
   const { user, sessionEnded } = useAuth()
-  const { contact } = useRequest()
+  const { contact, isOpen, reset } = useRequest()
+  const announce = useAnnounce()
+  // Read when a send finishes, which may be after the visitor has closed the panel.
+  const openRef = useRef(isOpen)
+  openRef.current = isOpen
   const r = t.request.review
   const a = t.request.after
   const branch = getBranch(draft.branchId)
@@ -98,8 +103,15 @@ export function StepReview({ draft, goToStep, outcome, setOutcome, onDone, onNew
     setSending(true)
     try {
       const created = await sendRequest(draft, lang)
-      setOutcome({ kind: 'received', reference: created.reference })
       window.dispatchEvent(new CustomEvent('lush:request-sent'))
+      if (openRef.current) {
+        setOutcome({ kind: 'received', reference: created.reference })
+      } else {
+        // Closed while sending: the request is finished, so the next visit starts a new one instead of
+        // offering to send this one again.
+        reset()
+        announce(`${a.sentTitle}. ${a.sentBody(created.reference)}`)
+      }
     } catch (error) {
       const code = error instanceof ApiError ? error.code : 'server'
       if (code === 'unauthorized') {
