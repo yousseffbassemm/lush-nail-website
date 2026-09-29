@@ -16,7 +16,7 @@ This is a **private client presentation**. The site sends `noindex, nofollow` un
 | --- | --- | --- |
 | ![](docs/previews/mobile-account-en.jpg) | ![](docs/previews/mobile-signup-in-flow.jpg) | ![](docs/previews/admin-requests.jpg) |
 
-More previews are in [`docs/previews`](docs/previews), including Arabic, the request drawer and the hero entrance frames.
+More previews are in [`docs/previews`](docs/previews), including Arabic, the request drawer and the nail-painting frames (see [Motion](#motion)).
 
 ## Run it
 
@@ -123,6 +123,12 @@ The site now needs a small Node server, not static hosting. Any VPS or Node host
 ## Motion
 
 Motion is choreographed rather than constant, and its signature comes from the salon itself: **every illustrated nail is painted the way a technician paints one.** It starts bare with a natural white tip. A stroke of polish goes down the centre, then one down each side, then tips, cat-eye light or hand-painted art go on, and finally a top-coat shine slides up the nail.
+
+![The hero as the page opens: the camouflage and headline arrive, the plate rises with bare nails, the set is painted nail by nail, and the finished set](docs/previews/hero-painting-frames.jpg)
+
+![A gallery look as it scrolls into view: bare nails, brush strokes going on, then the cat-eye light and top coat](docs/previews/gallery-painting-frames.jpg)
+
+*Frames captured from the running site, slowed to a quarter of its speed.*
 
 - **Hero on load:** the camouflage fades in, the headline reveals line by line, the framed plate rises with bare nails, and the set is painted nail by nail. With a mouse or trackpad, the camouflage layers drift apart slightly as the pointer moves.
 - **Gallery:** each look waits with bare nails and is painted as it scrolls into view. On hover, tiles lift and the top coat catches the light.
