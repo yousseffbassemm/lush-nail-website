@@ -349,6 +349,8 @@ export interface RequestFilters {
   branchId?: string
   kind?: 'appointment' | 'bridal'
   q?: string
+  /** Only appointments confirmed for this Cairo date (YYYY-MM-DD), in time order. */
+  confirmedOn?: string
 }
 
 export function listRequestsForStaff(db: DB, scope: StaffScope, filters: RequestFilters) {
@@ -367,6 +369,10 @@ export function listRequestsForStaff(db: DB, scope: StaffScope, filters: Request
     where.push('r.kind = ?')
     params.push(filters.kind)
   }
+  if (filters.confirmedOn) {
+    where.push("r.status = 'confirmed' AND r.confirmed_date = ?")
+    params.push(filters.confirmedOn)
+  }
   if (filters.q) {
     const like = `%${filters.q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`
     const digits = filters.q.replace(/\D/g, '')
@@ -378,7 +384,12 @@ export function listRequestsForStaff(db: DB, scope: StaffScope, filters: Request
     SELECT r.*, u.first_name AS customer_name, u.phone AS customer_phone, u.email AS customer_email
     FROM requests r JOIN users u ON u.id = r.user_id
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-    ORDER BY r.created_at DESC LIMIT 300`
+    ORDER BY ${
+      // Schedules read in time order; everything else newest first.
+      filters.confirmedOn || (filters.status?.length === 1 && filters.status[0] === 'confirmed')
+        ? 'r.confirmed_date ASC, r.confirmed_time ASC'
+        : 'r.created_at DESC'
+    } LIMIT 300`
   const rows = db.prepare(sql).all(...params) as unknown as (RequestRow & { customer_name: string; customer_phone: string; customer_email: string | null })[]
   return rows.map((r) => ({
     ...serializeRequest(r),
@@ -394,6 +405,17 @@ export function statusCounts(db: DB, scope: StaffScope, branchId?: string) {
       : db.prepare('SELECT status, COUNT(*) AS n FROM requests GROUP BY status').all()
   ) as { status: RequestStatus; n: number }[]
   return Object.fromEntries(rows.map((r) => [r.status, r.n])) as Partial<Record<RequestStatus, number>>
+}
+
+/** Appointments confirmed for a given day, for the "Today" count. */
+export function confirmedCount(db: DB, scope: StaffScope, date: string, branchId?: string) {
+  const branch = scope.branchId ?? branchId
+  const row = (
+    branch
+      ? db.prepare("SELECT COUNT(*) AS n FROM requests WHERE status = 'confirmed' AND confirmed_date = ? AND branch_id = ?").get(date, branch)
+      : db.prepare("SELECT COUNT(*) AS n FROM requests WHERE status = 'confirmed' AND confirmed_date = ?").get(date)
+  ) as { n: number }
+  return row.n
 }
 
 export function inScope(scope: StaffScope, request: Pick<RequestRow, 'branch_id'>) {

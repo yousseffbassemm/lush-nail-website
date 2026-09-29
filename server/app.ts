@@ -1,8 +1,10 @@
 import { Hono, type Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { secureHeaders } from 'hono/secure-headers'
+import { bodyLimit } from 'hono/body-limit'
 import type { z } from 'zod'
 import { toE164 } from '../src/booking/validation'
+import { nowInCairo } from '../src/booking/cairoTime'
 import { transaction, type DB, type RequestStatus } from './db'
 import {
   fieldErrors,
@@ -48,6 +50,7 @@ import {
   sessionLifetime,
   STATUS_TRANSITIONS,
   statusCounts,
+  confirmedCount,
   updateStatus,
   type UserRow,
 } from './store'
@@ -60,21 +63,24 @@ export interface AppOptions {
   appOrigin?: string
   /** Trust X-Forwarded-For / X-Forwarded-Proto from a reverse proxy. */
   trustProxy?: boolean
+  /** Multiplies every rate limit. Only the end-to-end test server raises it; production uses 1. */
+  rateLimitScale?: number
 }
 
 type Env = { Variables: { user: UserRow | null; token: string | null } }
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
-export function createApp({ db, secureCookies, appOrigin, trustProxy = false }: AppOptions) {
+export function createApp({ db, secureCookies, appOrigin, trustProxy = false, rateLimitScale = 1 }: AppOptions) {
   const app = new Hono<Env>()
   const cookieName = secureCookies ? '__Host-lush_session' : 'lush_session'
 
+  const scaled = (n: number) => Math.max(1, Math.round(n * rateLimitScale))
   const limits = {
-    login: new RateLimiter(10, 15 * 60 * 1000),
-    signup: new RateLimiter(8, 60 * 60 * 1000),
-    reset: new RateLimiter(10, 15 * 60 * 1000),
-    request: new RateLimiter(10, 60 * 60 * 1000),
+    login: new RateLimiter(scaled(10), 15 * 60 * 1000),
+    signup: new RateLimiter(scaled(8), 60 * 60 * 1000),
+    reset: new RateLimiter(scaled(10), 15 * 60 * 1000),
+    request: new RateLimiter(scaled(10), 60 * 60 * 1000),
   }
 
   const clientIp = (c: Context<Env>) => {
@@ -118,6 +124,8 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false }: 
   // ---------------------------------------------------------------- middleware
 
   app.use('/api/*', secureHeaders({ crossOriginResourcePolicy: 'same-origin', xFrameOptions: 'DENY' }))
+  // Every legitimate request body is tiny; refuse anything large before parsing it.
+  app.use('/api/*', bodyLimit({ maxSize: 16 * 1024, onError: (c) => c.json({ error: 'too_large' }, 413) }))
 
   app.use('/api/*', async (c, next) => {
     c.header('Cache-Control', 'no-store')
@@ -165,6 +173,8 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false }: 
       branchId: null,
       lang: input.lang,
     })
+    const previous = c.get('token')
+    if (previous) deleteSession(db, previous)
     startSession(c, user)
     return c.json({ user: publicUser(user) }, 201)
   })
@@ -182,6 +192,8 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false }: 
     }
     if (!(await verifyPassword(parsed.data.password, user.password_hash))) return fail(c, 401, 'bad_credentials')
     limits.login.reset(key)
+    const previous = c.get('token')
+    if (previous) deleteSession(db, previous)
     startSession(c, user)
     return c.json({ user: publicUser(user) })
   })
@@ -285,6 +297,9 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false }: 
     const request = getRequestByReference(db, c.req.param('reference'))
     if (!request || request.user_id !== user.id) return fail(c, 404, 'not_found')
     if (!CUSTOMER_CANCELLABLE.includes(request.status)) return fail(c, 409, 'invalid_transition')
+    // Once the day has passed there is nothing left to cancel; the branch records what happened.
+    const day = request.status === 'confirmed' ? request.confirmed_date : request.preferred_date
+    if (day && day < nowInCairo().date) return fail(c, 409, 'too_late')
     const updated = updateStatus(db, request.id, user.id, { status: 'cancelled' }, 'cancelled_by_customer')
     return c.json({ request: serializeRequest(updated) })
   })
@@ -301,13 +316,15 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false }: 
       : undefined
     const kind = c.req.query('kind')
     const branchId = c.req.query('branch') || undefined
+    const today = nowInCairo().date
     const requests = listRequestsForStaff(db, scope, {
       status,
       branchId,
       kind: kind === 'bridal' || kind === 'appointment' ? kind : undefined,
       q: c.req.query('q')?.trim().slice(0, 60) || undefined,
+      confirmedOn: c.req.query('today') === '1' ? today : undefined,
     })
-    return c.json({ requests, counts: statusCounts(db, scope, branchId), scope })
+    return c.json({ requests, counts: statusCounts(db, scope, branchId), today: confirmedCount(db, scope, today, branchId), scope })
   })
 
   app.get('/api/admin/requests/:id', (c) => {

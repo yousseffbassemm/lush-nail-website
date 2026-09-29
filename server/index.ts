@@ -19,6 +19,7 @@ const app = createApp({
   secureCookies: production && process.env.INSECURE_COOKIES !== '1',
   appOrigin: process.env.APP_ORIGIN,
   trustProxy: process.env.TRUST_PROXY === '1',
+  rateLimitScale: Number(process.env.LUSH_RATE_LIMIT_SCALE) || 1,
 })
 
 if (production) {
@@ -30,12 +31,15 @@ if (production) {
     c.header('Cache-Control', 'public, max-age=31536000, immutable')
   })
   app.use('/*', serveStatic({ root: './dist' }))
-  // Single-page app: every other page (/, /account, /admin) is index.html.
+  // Single-page app: pages are all index.html; unknown addresses get a 404 status with the same page,
+  // which shows a friendly "can't find that page".
+  const pages = new Set(['/', '/account', '/admin', '/admin/customers', '/admin/staff'])
   app.get('*', (c) => {
-    if (c.req.path.startsWith('/admin')) c.header('X-Robots-Tag', 'noindex, nofollow')
+    const path = c.req.path.replace(/\/+$/, '') || '/'
+    if (path.startsWith('/admin')) c.header('X-Robots-Tag', 'noindex, nofollow')
     c.header('X-Content-Type-Options', 'nosniff')
     c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
-    return c.html(indexHtml)
+    return c.html(indexHtml, pages.has(path) ? 200 : 404)
   })
 }
 

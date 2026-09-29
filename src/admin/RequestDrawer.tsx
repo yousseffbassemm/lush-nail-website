@@ -3,7 +3,7 @@ import { useI18n } from '../i18n/I18nProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { getBranch, type BranchId } from '../content/site'
 import { findLook } from '../content/looks'
-import { formatCairoDate, formatCairoDateTime, formatTime } from '../booking/cairoTime'
+import { formatCairoDate, formatCairoDateTime, formatTime, nowInCairo } from '../booking/cairoTime'
 import { formatPhone } from '../booking/validation'
 import { api, ApiError, type AppointmentRequest, type RequestStatus, type User } from '../lib/api'
 import { Button, LinkButton } from '../components/ui/Button'
@@ -46,6 +46,9 @@ export function RequestDrawer({ id, onClose, onChanged }: { id: number | null; o
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   const closeRef = useRef<HTMLButtonElement>(null)
+  // Switching language mid-edit must not reload the request or throw away what was typed.
+  const strings = useRef(s)
+  strings.current = s
 
   useEffect(() => {
     setDetail(null)
@@ -53,14 +56,20 @@ export function RequestDrawer({ id, onClose, onChanged }: { id: number | null; o
     setError(null)
     setNote('')
     setSaved(false)
+    setFormErrors({})
     if (id === null) return
+    let current = true
     api<Detail>(`/admin/requests/${id}`)
-      .then(setDetail)
+      .then((d) => current && setDetail(d))
       .catch((e) => {
+        if (!current) return
         if (e instanceof ApiError && e.code === 'unauthorized') sessionEnded()
-        setError(s.errors[e instanceof ApiError ? e.code : 'not_found'] ?? s.loadError)
+        setError(strings.current.errors[e instanceof ApiError ? e.code : 'not_found'] ?? strings.current.loadError)
       })
-  }, [id, sessionEnded, s])
+    return () => {
+      current = false
+    }
+  }, [id, sessionEnded])
 
   const fail = (e: unknown) => {
     if (e instanceof ApiError && e.code === 'unauthorized') sessionEnded()
@@ -74,8 +83,10 @@ export function RequestDrawer({ id, onClose, onChanged }: { id: number | null; o
     setPending(p)
     setFormErrors({})
     setSaved(false)
+    const today = nowInCairo().date
+    const suggested = r.confirmedDate ?? r.preferredDate
     setForm({
-      date: r.confirmedDate ?? r.preferredDate,
+      date: suggested < today ? today : suggested,
       time: r.confirmedTime ?? r.preferredTime ?? '',
       message: '',
     })
@@ -322,6 +333,7 @@ export function RequestDrawer({ id, onClose, onChanged }: { id: number | null; o
                             <input
                               id="confirm-date"
                               type="date"
+                              min={nowInCairo().date}
                               value={form.date}
                               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                               className={`${inputClass} ${formErrors.confirmedDate ? 'border-danger' : 'border-line-strong'}`}

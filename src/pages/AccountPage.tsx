@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { AuthPanel, PasswordInput } from '../auth/AuthPanel'
@@ -17,12 +17,14 @@ import { LushField } from '../components/brand/LushField'
 
 const OPEN_STATUSES = ['new', 'contacted', 'confirmed']
 
+/** The day that matters for a request: the confirmed day once there is one, otherwise the preferred day. */
+const dayOf = (r: AppointmentRequest) => (r.status === 'confirmed' ? (r.confirmedDate ?? r.preferredDate) : r.preferredDate)
+
 function isUpcoming(r: AppointmentRequest, today: string) {
-  if (r.status === 'new' || r.status === 'contacted') return true
-  return r.status === 'confirmed' && (r.confirmedDate ?? r.preferredDate) >= today
+  return OPEN_STATUSES.includes(r.status) && dayOf(r) >= today
 }
 
-function RequestCard({ request, onChange }: { request: AppointmentRequest; onChange: (r: AppointmentRequest) => void }) {
+function RequestCard({ request, onChange, onStale }: { request: AppointmentRequest; onChange: (r: AppointmentRequest) => void; onStale: () => void }) {
   const { t, lang, pick } = useI18n()
   const { sessionEnded } = useAuth()
   const announce = useAnnounce()
@@ -35,7 +37,9 @@ function RequestCard({ request, onChange }: { request: AppointmentRequest; onCha
   const confirmed = request.status === 'confirmed'
   const date = confirmed ? request.confirmedDate : request.preferredDate
   const time = confirmed ? request.confirmedTime : request.preferredTime
-  const canCancel = OPEN_STATUSES.includes(request.status) && (date ?? '') >= today
+  const open = OPEN_STATUSES.includes(request.status)
+  const canCancel = open && (date ?? '') >= today
+  const passedUnconfirmed = open && !confirmed && (date ?? '') < today
 
   const titleParts = [
     ...request.services.map((s) => (s.durationMin ? `${s.name[lang]} · ${t.common.minutes(s.durationMin)}` : s.name[lang])),
@@ -52,6 +56,8 @@ function RequestCard({ request, onChange }: { request: AppointmentRequest; onCha
       announce(t.account.cancelledNotice)
     } catch (e) {
       if (e instanceof ApiError && e.code === 'unauthorized') sessionEnded()
+      // The branch changed it meanwhile, or its day has passed: show the latest state.
+      if (e instanceof ApiError && (e.code === 'invalid_transition' || e.code === 'too_late')) onStale()
       setError(t.auth.errors[e instanceof ApiError ? e.code : 'server'] ?? t.auth.errors.server)
     } finally {
       setBusy(false)
@@ -90,7 +96,7 @@ function RequestCard({ request, onChange }: { request: AppointmentRequest; onCha
           </div>
         )}
       </dl>
-      <p className="mt-3 text-sm text-charcoal/80">{t.account.statusHelp[request.status]}</p>
+      <p className="mt-3 text-sm text-charcoal/80">{passedUnconfirmed ? t.account.datePassed : t.account.statusHelp[request.status]}</p>
       {request.customerMessage && (
         <blockquote className="mt-3 border-s-2 border-gold ps-3 text-sm">
           <span className="block text-xs text-taupe-ink">{t.account.messageFromBranch}</span>
@@ -120,12 +126,12 @@ function RequestCard({ request, onChange }: { request: AppointmentRequest; onCha
               {t.account.cancel}
             </button>
           )}
-          {error && (
-            <p role="alert" className="mt-2 text-sm text-danger">
-              {error}
-            </p>
-          )}
         </div>
+      )}
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-danger">
+          {error}
+        </p>
       )}
     </li>
   )
@@ -273,7 +279,9 @@ export function AccountPage() {
     document.title = `${t.account.title} · ${t.common.businessName}`
   }, [t])
 
+  const lastLoad = useRef(0)
   const load = useCallback(async () => {
+    lastLoad.current = Date.now()
     setLoadError(false)
     try {
       const { requests: list } = await api<{ requests: AppointmentRequest[] }>('/requests')
@@ -287,6 +295,28 @@ export function AccountPage() {
   useEffect(() => {
     if (user) void load()
     else setRequests(null)
+  }, [user, load])
+
+  // A request sent from this page (the header or mobile bar) appears without a reload.
+  useEffect(() => {
+    const refresh = () => {
+      if (user) void load()
+    }
+    window.addEventListener('lush:request-sent', refresh)
+    return () => window.removeEventListener('lush:request-sent', refresh)
+  }, [user, load])
+
+  // Coming back to the tab shows the branch's latest replies (at most every 20 seconds).
+  useEffect(() => {
+    const onReturn = () => {
+      if (user && document.visibilityState === 'visible' && Date.now() - lastLoad.current > 20_000) void load()
+    }
+    document.addEventListener('visibilitychange', onReturn)
+    window.addEventListener('focus', onReturn)
+    return () => {
+      document.removeEventListener('visibilitychange', onReturn)
+      window.removeEventListener('focus', onReturn)
+    }
   }, [user, load])
 
   const today = nowInCairo().date
@@ -332,8 +362,14 @@ export function AccountPage() {
               </div>
             </div>
 
-            <div className="mt-12" aria-live="polite" aria-busy={requests === null && !loadError}>
-              {requests === null && !loadError && <p className="text-taupe-ink">{t.account.loading}</p>}
+            <div className="mt-12" aria-busy={requests === null && !loadError}>
+              {requests === null && !loadError && (
+                <ul className="grid gap-4 md:grid-cols-2" aria-label={t.account.loading}>
+                  {[0, 1].map((i) => (
+                    <li key={i} className="skeleton h-56 rounded-[1.25rem]" />
+                  ))}
+                </ul>
+              )}
               {loadError && (
                 <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-blush-soft p-5">
                   <p>{t.account.loadError}</p>
@@ -356,7 +392,7 @@ export function AccountPage() {
                   <h2 className="display text-[2rem] italic">{t.account.upcoming}</h2>
                   <ul className="mt-5 grid gap-4 md:grid-cols-2">
                     {upcoming.map((r) => (
-                      <RequestCard key={r.id} request={r} onChange={replace} />
+                      <RequestCard key={r.id} request={r} onChange={replace} onStale={() => void load()} />
                     ))}
                   </ul>
                 </>
@@ -366,7 +402,7 @@ export function AccountPage() {
                   <h2 className="display mt-14 text-[2rem] italic">{t.account.past}</h2>
                   <ul className="mt-5 grid gap-4 md:grid-cols-2">
                     {past.map((r) => (
-                      <RequestCard key={r.id} request={r} onChange={replace} />
+                      <RequestCard key={r.id} request={r} onChange={replace} onStale={() => void load()} />
                     ))}
                   </ul>
                 </>

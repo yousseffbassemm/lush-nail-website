@@ -245,3 +245,41 @@ test('admins manage staff but cannot lock themselves out', async () => {
   assert.equal((await reception.get('/api/admin/requests')).status, 401, 'disabled staff are signed out')
   assert.equal((await admin.patch(`/api/admin/staff/${me.json.user.id}`, { disabled: true })).status, 409)
 })
+
+test('confirmed days must be ahead, and customers cannot cancel once the day has passed', async () => {
+  const { app, db } = setup()
+  await makeStaff(db, 'admin', '+201000000001', null)
+  const customer = client(app)
+  await customer.post('/api/auth/signup', { firstName: 'Yasmin', phone: '01012345678', password: 'password-1' })
+  const { request: r } = (await customer.post('/api/requests', request())).json
+  const admin = client(app)
+  await admin.post('/api/auth/login', { phone: '01000000001', password: 'staff-password-1' })
+
+  const yesterday = addDays(nowInCairo().date, -1)
+  const past = await admin.post(`/api/admin/requests/${r.id}/status`, { status: 'confirmed', confirmedDate: yesterday, confirmedTime: '12:00' })
+  assert.equal(past.json.fields.confirmedDate, 'datePast')
+  const far = await admin.post(`/api/admin/requests/${r.id}/status`, { status: 'confirmed', confirmedDate: addDays(nowInCairo().date, 400), confirmedTime: '12:00' })
+  assert.equal(far.json.fields.confirmedDate, 'dateFar')
+
+  // A confirmed appointment whose day is over is for the branch to close, not the customer.
+  db.prepare("UPDATE requests SET status = 'confirmed', confirmed_date = ?, confirmed_time = '12:00' WHERE id = ?").run(yesterday, r.id)
+  const late = await customer.post(`/api/requests/${r.reference}/cancel`)
+  assert.equal(late.status, 409)
+  assert.equal(late.json.error, 'too_late')
+})
+
+test('signing in again replaces the session this browser had', async () => {
+  const { app } = setup()
+  const send = (path: string, body: unknown, cookie = '') =>
+    app.request(`${ORIGIN}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ORIGIN, ...(cookie ? { cookie } : {}) },
+      body: JSON.stringify(body),
+    })
+  const first = (await send('/api/auth/signup', { firstName: 'Rana', phone: '01012345678', password: 'password-1' })).headers.get('set-cookie')!.split(';')[0]
+  const second = (await send('/api/auth/login', { phone: '01012345678', password: 'password-1' }, first)).headers.get('set-cookie')!.split(';')[0]
+  assert.notEqual(first, second)
+  const me = async (cookie: string) => ((await (await app.request(`${ORIGIN}/api/auth/me`, { headers: { cookie } })).json()) as { user: unknown }).user
+  assert.equal(await me(first), null)
+  assert.notEqual(await me(second), null)
+})

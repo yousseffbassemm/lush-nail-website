@@ -24,18 +24,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    api<{ user: User | null }>('/auth/me')
-      .then(({ user: me }) => {
-        if (cancelled) return
-        setUser(me)
-        setStatus('ready')
-      })
-      .catch(() => {
-        // Without the API (e.g. a static preview) the site still works: requests go by message or phone.
-        if (!cancelled) setStatus('offline')
-      })
+    let retry = 0
+    const check = (attempt: number) =>
+      api<{ user: User | null }>('/auth/me')
+        .then(({ user: me }) => {
+          if (cancelled) return
+          setUser(me)
+          setStatus('ready')
+        })
+        .catch(() => {
+          if (cancelled) return
+          // One quick retry covers a blip (a server restart, a flaky connection).
+          if (attempt === 0) retry = window.setTimeout(() => void check(1), 1200)
+          // Without the API (e.g. a static preview) the site still works: requests go by message or phone.
+          else setStatus('offline')
+        })
+    void check(0)
     return () => {
       cancelled = true
+      window.clearTimeout(retry)
     }
   }, [])
 
@@ -62,6 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logOut = useCallback(async () => {
     try {
       await api('/auth/logout', { method: 'POST' })
+    } catch {
+      // Even if the server can't be reached, this browser stops showing the account.
     } finally {
       setUser(null)
     }

@@ -62,7 +62,7 @@ interface Props {
   prefill?: { firstName?: string; phone?: string }
   onDone?: (user: User) => void
   /** Heading level inside the host (dialog or request step). */
-  headingLevel?: 'h2' | 'h3' | 'h4'
+  headingLevel?: 'h1' | 'h2' | 'h3' | 'h4'
   intro?: ReactNode
   /** Staff sign-in hides account creation. */
   allowSignup?: boolean
@@ -168,10 +168,21 @@ export function AuthPanel({ initialMode = 'signup', prefill, onDone, headingLeve
           {(['signup', 'login'] as const).map((m) => (
             <button
               key={m}
+              id={id(`tab-${m}`)}
               type="button"
               role="tab"
               aria-selected={mode === m}
+              aria-controls={id('panel')}
+              tabIndex={mode === m ? 0 : -1}
               onClick={() => switchMode(m)}
+              onKeyDown={(e) => {
+                // Two tabs: either arrow key (or Home/End) moves to the other one.
+                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return
+                e.preventDefault()
+                const next = e.key === 'Home' ? 'signup' : e.key === 'End' ? 'login' : m === 'signup' ? 'login' : 'signup'
+                switchMode(next)
+                document.getElementById(id(`tab-${next}`))?.focus()
+              }}
               className={`min-h-11 rounded-full px-4 font-medium transition-[background-color,color,box-shadow] duration-200 ${
                 mode === m ? 'bg-paper text-charcoal shadow-[0_1px_3px_rgb(40_35_32/0.12)]' : 'text-taupe-ink hover:text-charcoal'
               }`}
@@ -182,6 +193,10 @@ export function AuthPanel({ initialMode = 'signup', prefill, onDone, headingLeve
         </div>
       )}
 
+      <div
+        id={id('panel')}
+        {...(mode !== 'reset' && allowSignup ? { role: 'tabpanel', 'aria-labelledby': id(`tab-${mode}`) } : {})}
+      >
       <Heading className="display text-[1.9rem] leading-tight">{titles[mode]}</Heading>
       <p className="mt-1 text-sm text-taupe-ink">{intro && mode === 'signup' ? intro : helps[mode]}</p>
 
@@ -233,6 +248,11 @@ export function AuthPanel({ initialMode = 'signup', prefill, onDone, headingLeve
             className={`${inputClass} ${inputBorder(err('phone'))} tabular rtl:text-right`}
           />
         </Field>
+        {mode === 'signup' && errors.phone === 'phoneTaken' && (
+          <button type="button" onClick={() => switchMode('login')} className="link-underline -mt-2 justify-self-start text-sm font-medium">
+            {a.logInWithNumber}
+          </button>
+        )}
         {mode === 'signup' && (
           <Field id={id('email')} label={a.email} optionalLabel={a.optional} error={err('email')}>
             <input
@@ -298,6 +318,7 @@ export function AuthPanel({ initialMode = 'signup', prefill, onDone, headingLeve
           </button>
         )}
       </form>
+      </div>
     </div>
   )
 }

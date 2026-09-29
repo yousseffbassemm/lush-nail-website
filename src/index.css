@@ -372,6 +372,20 @@
     background-color: var(--color-blush);
   }
 }
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+/* Placeholder shapes while a list loads; they shimmer only when motion is welcome. */
+.skeleton {
+  background: linear-gradient(100deg, var(--color-blush-soft) 30%, var(--color-paper) 50%, var(--color-blush-soft) 70%);
+  background-size: 300% 100%;
+  border: 1px solid var(--color-line);
+}
 @keyframes bar-in {
   from {
     transform: translateY(110%);
@@ -381,12 +395,12 @@
 @media (prefers-reduced-motion: no-preference) {
   /* Hero: text, headline lines, framed plate, nails dealt one by one, spa circle. */
   .hero-seq > * {
-    animation: rise-in 900ms var(--ease-out-soft) both;
-    animation-delay: calc(var(--i, 0) * 90ms + 120ms);
+    animation: rise-in 800ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--i, 0) * 80ms + 100ms);
   }
   .hero-line {
-    animation: line-in 1050ms var(--ease-out-soft) both;
-    animation-delay: calc(var(--i, 0) * 150ms + 220ms);
+    animation: line-in 900ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--i, 0) * 120ms + 180ms);
   }
   .field-in {
     animation: field-in 1600ms var(--ease-out-soft) both;
@@ -496,6 +510,10 @@
 
   .bar-in {
     animation: bar-in 600ms var(--ease-out-soft) 800ms backwards;
+  }
+
+  .skeleton {
+    animation: shimmer 1.6s linear infinite;
   }
 
   /* Staff dashboard. */

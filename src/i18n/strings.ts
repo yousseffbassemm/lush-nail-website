@@ -166,6 +166,11 @@ const en = {
     priceList: 'Official price list',
     note: 'Prices in Egyptian pounds, from the current price list.',
   },
+  notFound: {
+    title: 'We can’t find that page',
+    body: 'The link may be old or mistyped. Everything at Lush starts from the home page.',
+    home: 'Back to the home page',
+  },
   auth: {
     signUpTab: 'New account',
     logInTab: 'Log in',
@@ -192,6 +197,7 @@ const en = {
     code: 'Reset code',
     resetSubmit: 'Save new password',
     backToLogin: 'Back to log in',
+    logInWithNumber: 'Log in with this number',
     consent: 'By creating an account, you agree that Lush keeps your name and number to manage your appointments.',
     signedInAs: (name: string) => `Signed in as ${name}`,
     notYou: 'Not you? Log out',
@@ -216,6 +222,8 @@ const en = {
       passwordWrong: 'Your current password isn’t right.',
       code: 'Enter the code from the branch.',
       tooLong: 'That’s too long. Please shorten it.',
+      too_late: 'This appointment’s day has passed, so it can’t be cancelled here. Call the branch if you need to.',
+      invalid_transition: 'The branch has just updated this request. Its latest status is shown above.',
     } as Record<string, string>,
   },
   account: {
@@ -246,6 +254,7 @@ const en = {
       completed: 'Thank you for visiting.',
       no_show: 'This appointment was missed.',
     } as Record<string, string>,
+    datePassed: 'This date has passed without a confirmation. Request another time or call the branch.',
     preferred: 'Preferred',
     confirmedFor: 'Confirmed for',
     reference: 'Reference',
@@ -564,6 +573,11 @@ const ar: Strings = {
     priceList: 'قائمة الأسعار الرسمية',
     note: 'الأسعار بالجنيه المصري من قائمة الأسعار الحالية.',
   },
+  notFound: {
+    title: 'مش لاقيين الصفحة دي',
+    body: 'ممكن يكون الرابط قديم أو فيه غلطة. كل حاجة في لاش بتبدأ من الصفحة الرئيسية.',
+    home: 'رجوع للصفحة الرئيسية',
+  },
   auth: {
     signUpTab: 'حساب جديد',
     logInTab: 'تسجيل الدخول',
@@ -590,6 +604,7 @@ const ar: Strings = {
     code: 'الكود',
     resetSubmit: 'احفظي كلمة السر الجديدة',
     backToLogin: 'رجوع لتسجيل الدخول',
+    logInWithNumber: 'سجلي دخول بالرقم ده',
     consent: 'بإنشاء الحساب، بتوافقي إن لاش تحتفظ باسمك ورقمك علشان تنظيم مواعيدك.',
     signedInAs: (name: string) => `مسجلة باسم ${name}`,
     notYou: 'مش انتي؟ سجلي خروج',
@@ -614,6 +629,8 @@ const ar: Strings = {
       passwordWrong: 'كلمة السر الحالية مش صحيحة.',
       code: 'اكتبي الكود اللي جالك من الفرع.',
       tooLong: 'النص طويل. قصريه شوية.',
+      too_late: 'يوم الميعاد ده عدى، فمينفعش يتلغى من هنا. اتصلي بالفرع لو محتاجة.',
+      invalid_transition: 'الفرع لسه محدّث الطلب ده. آخر حالة ليه ظاهرة فوق.',
     } as Record<string, string>,
   },
   account: {
@@ -644,6 +661,7 @@ const ar: Strings = {
       completed: 'شكراً لزيارتك.',
       no_show: 'الميعاد ده فات.',
     } as Record<string, string>,
+    datePassed: 'اليوم ده عدى من غير تأكيد. اطلبي ميعاد تاني أو اتصلي بالفرع.',
     preferred: 'المفضل',
     confirmedFor: 'متأكد يوم',
     reference: 'رقم الطلب',

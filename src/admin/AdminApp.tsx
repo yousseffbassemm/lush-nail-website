@@ -3,7 +3,7 @@ import { useI18n } from '../i18n/I18nProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { AuthPanel } from '../auth/AuthPanel'
 import { getBranch, type BranchId } from '../content/site'
-import { Link, usePathname } from '../lib/router'
+import { Link, navigate, usePathname } from '../lib/router'
 import { Logo } from '../components/brand/Logo'
 import { LanguageToggle } from '../components/sections/Header'
 import { Button } from '../components/ui/Button'
@@ -39,6 +39,12 @@ export default function AdminApp() {
     const robots = document.querySelector('meta[name="robots"]')
     robots?.setAttribute('content', 'noindex, nofollow')
   }, [s])
+
+  // Addresses a staff member can't use (another admin's page, a typo) fall back to requests.
+  const known = path === '/admin' || path === '/admin/' || path.startsWith('/admin/customers') || (path.startsWith('/admin/staff') && user?.role === 'admin')
+  useEffect(() => {
+    if (user && user.role !== 'customer' && !known) navigate('/admin', { replace: true })
+  }, [user, known])
 
   if (status === 'loading') {
     return (
@@ -82,8 +88,7 @@ export default function AdminApp() {
               </div>
             ) : (
               <>
-                <h1 className="sr-only">{s.loginTitle}</h1>
-                <AuthPanel initialMode="login" allowSignup={false} headingLevel="h2" loginCopy={{ title: s.loginTitle, help: s.loginHelp }} />
+                <AuthPanel initialMode="login" allowSignup={false} headingLevel="h1" loginCopy={{ title: s.loginTitle, help: s.loginHelp }} />
               </>
             )}
           </div>

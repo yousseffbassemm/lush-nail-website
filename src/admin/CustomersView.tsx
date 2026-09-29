@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 import { formatCairoDateTime } from '../booking/cairoTime'
 import { formatPhone } from '../booking/validation'
-import { api, type User } from '../lib/api'
+import { api, ApiError, type User } from '../lib/api'
+import { useAuth } from '../auth/AuthProvider'
+import { Link } from '../lib/router'
 import { Button } from '../components/ui/Button'
 import { Icon } from '../components/ui/Icon'
 import { inputClass } from '../components/request/Field'
@@ -11,25 +13,38 @@ import { ResetCodeDialog } from './ResetCodeDialog'
 
 type Customer = User & { requestCount: number; lastRequestAt: string | null }
 
+/** +201001234567 → 01001234567, the form staff type into the requests search. */
+const localPhone = (e164: string) => (e164.startsWith('+20') ? `0${e164.slice(3)}` : e164)
+
 export function CustomersView() {
   const { lang } = useI18n()
   const s = useAdminStrings()
+  const { sessionEnded } = useAuth()
   const [query, setQuery] = useState('')
   const [customers, setCustomers] = useState<Customer[] | null>(null)
   const [error, setError] = useState(false)
   const [resetFor, setResetFor] = useState<Customer | null>(null)
 
   useEffect(() => {
+    let current = true
     const id = window.setTimeout(() => {
       api<{ customers: Customer[] }>(`/admin/customers?q=${encodeURIComponent(query.trim())}`)
         .then(({ customers: list }) => {
+          if (!current) return
           setCustomers(list)
           setError(false)
         })
-        .catch(() => setError(true))
+        .catch((e) => {
+          if (!current) return
+          if (e instanceof ApiError && (e.code === 'unauthorized' || e.code === 'forbidden')) sessionEnded()
+          setError(true)
+        })
     }, 250)
-    return () => window.clearTimeout(id)
-  }, [query])
+    return () => {
+      current = false
+      window.clearTimeout(id)
+    }
+  }, [query, sessionEnded])
 
   return (
     <div>
@@ -42,7 +57,7 @@ export function CustomersView() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={s.searchPlaceholder}
+          placeholder={s.customers.searchPlaceholder}
           className={`${inputClass} border-line-strong ps-10`}
         />
       </label>
@@ -53,7 +68,13 @@ export function CustomersView() {
             {s.loadError}
           </p>
         )}
-        {!customers && !error && <p className="py-10 text-center text-taupe-ink">{s.loading}</p>}
+        {!customers && !error && (
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label={s.loading}>
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="skeleton h-32 rounded-2xl" />
+            ))}
+          </ul>
+        )}
         {customers?.length === 0 && <p className="rounded-2xl border border-dashed border-line-strong p-10 text-center text-taupe-ink">{s.customers.empty}</p>}
         {customers && customers.length > 0 && (
           <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -76,7 +97,16 @@ export function CustomersView() {
                 <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-taupe-ink">
                   <div className="flex gap-1">
                     <dt>{s.customers.requests}:</dt>
-                    <dd className="tabular text-charcoal">{c.requestCount}</dd>
+                    <dd className="tabular text-charcoal">
+                      {c.requestCount > 0 ? (
+                        <Link to={`/admin?q=${encodeURIComponent(localPhone(c.phone))}`} className="underline underline-offset-2 hover:text-rose-ink">
+                          {c.requestCount}
+                          <span className="sr-only"> · {s.customers.seeRequests(c.firstName)}</span>
+                        </Link>
+                      ) : (
+                        c.requestCount
+                      )}
+                    </dd>
                   </div>
                   {c.lastRequestAt && (
                     <div className="flex gap-1">

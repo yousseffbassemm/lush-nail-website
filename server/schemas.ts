@@ -87,7 +87,10 @@ export const statusChangeSchema = z
   })
   .superRefine((r, ctx) => {
     if (r.status !== 'confirmed') return
+    const today = nowInCairo().date
     if (!r.confirmedDate || !isIsoDate(r.confirmedDate)) ctx.addIssue({ code: 'custom', path: ['confirmedDate'], message: 'date' })
+    else if (r.confirmedDate < today) ctx.addIssue({ code: 'custom', path: ['confirmedDate'], message: 'datePast' })
+    else if (r.confirmedDate > addDays(today, 365)) ctx.addIssue({ code: 'custom', path: ['confirmedDate'], message: 'dateFar' })
     if (!r.confirmedTime) ctx.addIssue({ code: 'custom', path: ['confirmedTime'], message: 'time' })
   })
 

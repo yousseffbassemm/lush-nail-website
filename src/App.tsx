@@ -18,6 +18,7 @@ import { Footer } from './components/sections/Footer'
 import { MobileBar } from './components/sections/MobileBar'
 import { RequestDialog } from './components/request/RequestDialog'
 import { AccountPage } from './pages/AccountPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 
 // Staff code is only downloaded by people who open /admin.
 const AdminApp = lazy(() => import('./admin/AdminApp'))
@@ -27,6 +28,13 @@ function HomePage() {
   useEffect(() => {
     document.title = t.meta.title
   }, [t])
+  // A link to a section (/#bridal) opens there once the page has rendered.
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1))
+    if (!id) return
+    const frame = window.requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start' }))
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
   return (
     <>
       <Hero />
@@ -41,7 +49,7 @@ function HomePage() {
 }
 
 function Routes() {
-  const path = usePathname()
+  const path = usePathname().replace(/\/+$/, '') || '/'
   useRevealOnScroll()
   if (path === '/admin' || path.startsWith('/admin/')) {
     return (
@@ -54,7 +62,7 @@ function Routes() {
     <MenuTabProvider>
       <Header />
       <main id="main" tabIndex={-1} className="focus:outline-none">
-        {path === '/account' ? <AccountPage /> : <HomePage />}
+        {path === '/' ? <HomePage /> : path === '/account' ? <AccountPage /> : <NotFoundPage />}
       </main>
       <Footer />
       <MobileBar />

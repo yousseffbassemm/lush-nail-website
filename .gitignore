@@ -5,3 +5,5 @@ dist
 qa-output
 *.tsbuildinfo
 data/
+e2e/.tmp-*
+e2e/.results*

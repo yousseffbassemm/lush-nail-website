@@ -25,6 +25,7 @@ const en = {
   appointment: 'Appointment',
   bridal: 'Bridal',
   filters: {
+    today: 'Today',
     open: 'Needs reply',
     contacted: 'In touch',
     confirmed: 'Confirmed',
@@ -108,6 +109,8 @@ const en = {
     joined: 'Joined',
     resetCode: 'Reset code',
     empty: 'No customers found.',
+    searchPlaceholder: 'Name, mobile or email',
+    seeRequests: (name: string) => `See ${name}’s requests`,
   },
   reset: {
     title: 'Password reset code',
@@ -145,6 +148,8 @@ const en = {
     self_lockout: 'You can’t disable your own account or remove your own admin role.',
     not_found: 'That item no longer exists.',
     date: 'Choose a date.',
+    datePast: 'That date has passed. Choose today or a later day.',
+    dateFar: 'Choose a date within the next 12 months.',
     time: 'Choose a time.',
     note: 'Write a note first.',
   } as Record<string, string>,
@@ -176,6 +181,7 @@ const ar: AdminStrings = {
   appointment: 'ميعاد',
   bridal: 'عرايس',
   filters: {
+    today: 'النهارده',
     open: 'محتاج رد',
     contacted: 'تم التواصل',
     confirmed: 'مؤكد',
@@ -259,6 +265,8 @@ const ar: AdminStrings = {
     joined: 'انضمت',
     resetCode: 'كود كلمة السر',
     empty: 'مفيش عملاء.',
+    searchPlaceholder: 'الاسم أو الموبايل أو الإيميل',
+    seeRequests: (name: string) => `طلبات ${name}`,
   },
   reset: {
     title: 'كود تغيير كلمة السر',
@@ -296,6 +304,8 @@ const ar: AdminStrings = {
     self_lockout: 'مينفعش توقفي حسابك أو تشيلي صلاحية المدير من نفسك.',
     not_found: 'العنصر ده مبقاش موجود.',
     date: 'اختاري اليوم.',
+    datePast: 'اليوم ده عدى. اختاري النهارده أو يوم بعده.',
+    dateFar: 'اختاري يوم خلال الـ ١٢ شهر الجايين.',
     time: 'اختاري الوقت.',
     note: 'اكتبي الملاحظة الأول.',
   } as Record<string, string>,

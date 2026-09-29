@@ -99,6 +99,7 @@ export function StepReview({ draft, goToStep, outcome, setOutcome, onDone, onNew
     try {
       const created = await sendRequest(draft, lang)
       setOutcome({ kind: 'received', reference: created.reference })
+      window.dispatchEvent(new CustomEvent('lush:request-sent'))
     } catch (error) {
       const code = error instanceof ApiError ? error.code : 'server'
       if (code === 'unauthorized') {

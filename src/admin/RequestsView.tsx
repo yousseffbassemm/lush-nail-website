@@ -15,15 +15,27 @@ import { RequestDrawer } from './RequestDrawer'
 
 export type StaffRequest = AppointmentRequest & { customer: { id: number; firstName: string; phone: string; email: string | null } }
 
-type Filter = 'open' | 'contacted' | 'confirmed' | 'closed' | 'all'
+type Filter = 'open' | 'today' | 'contacted' | 'confirmed' | 'closed' | 'all'
 const FILTER_STATUSES: Record<Filter, RequestStatus[]> = {
   open: ['new'],
+  today: ['confirmed'],
   contacted: ['contacted'],
   confirmed: ['confirmed'],
   closed: ['declined', 'cancelled', 'completed', 'no_show'],
   all: [],
 }
 const POLL_MS = 30_000
+
+function queryFor(filter: Filter, q: string, branch: string, kind: string) {
+  const params = new URLSearchParams()
+  const statuses = FILTER_STATUSES[filter]
+  if (statuses.length) params.set('status', statuses.join(','))
+  if (filter === 'today') params.set('today', '1')
+  if (q) params.set('q', q)
+  if (branch) params.set('branch', branch)
+  if (kind) params.set('kind', kind)
+  return params.toString()
+}
 
 export function requestSummary(r: AppointmentRequest, lang: 'en' | 'ar', s: ReturnType<typeof useAdminStrings>) {
   const look = findLook(r.lookRef)
@@ -56,17 +68,22 @@ export function RequestsView({ user }: { user: User }) {
   const { lang, pick } = useI18n()
   const { sessionEnded } = useAuth()
   const s = useAdminStrings()
-  const [filter, setFilter] = useState<Filter>('open')
-  const [query, setQuery] = useState('')
-  const [debounced, setDebounced] = useState('')
+  // Opened from a customer's card: show all of that customer's requests.
+  const [initialQuery] = useState(() => new URLSearchParams(window.location.search).get('q')?.slice(0, 60) ?? '')
+  const [filter, setFilter] = useState<Filter>(initialQuery ? 'all' : 'open')
+  const [query, setQuery] = useState(initialQuery)
+  const [debounced, setDebounced] = useState(initialQuery)
   const [branch, setBranch] = useState('')
   const [kind, setKind] = useState('')
-  const [data, setData] = useState<{ requests: StaffRequest[]; counts: Partial<Record<RequestStatus, number>> } | null>(null)
+  const [data, setData] = useState<{ requests: StaffRequest[]; counts: Partial<Record<RequestStatus, number>>; today: number; query: string } | null>(null)
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(false)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
-  const seen = useRef<Set<number>>(new Set())
+  // Newest request time already on screen, so only genuinely new arrivals get highlighted.
+  const newestSeen = useRef<string | null>(null)
+  // Filters can change faster than the server answers; only the latest answer is shown.
+  const latest = useRef(0)
   const [fresh, setFresh] = useState<Set<number>>(new Set())
   const canPickBranch = user.role === 'admin' || !user.branchId
 
@@ -75,28 +92,34 @@ export function RequestsView({ user }: { user: User }) {
     return () => window.clearTimeout(id)
   }, [query])
 
+  // Once the search changes, drop the customer link's ?q= so a reload doesn't bring it back.
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('q') && url.searchParams.get('q') !== debounced) {
+      url.searchParams.delete('q')
+      window.history.replaceState(null, '', url)
+    }
+  }, [debounced])
+
   const load = useCallback(async () => {
+    const call = ++latest.current
     setLoading(true)
-    const params = new URLSearchParams()
-    const statuses = FILTER_STATUSES[filter]
-    if (statuses.length) params.set('status', statuses.join(','))
-    if (debounced) params.set('q', debounced)
-    if (branch) params.set('branch', branch)
-    if (kind) params.set('kind', kind)
+    const query = queryFor(filter, debounced, branch, kind)
     try {
-      const result = await api<{ requests: StaffRequest[]; counts: Partial<Record<RequestStatus, number>> }>(`/admin/requests?${params}`)
-      // Highlight requests that arrived since the last refresh.
-      const arrived = new Set(result.requests.filter((r) => seen.current.size > 0 && !seen.current.has(r.id)).map((r) => r.id))
-      result.requests.forEach((r) => seen.current.add(r.id))
-      setFresh(arrived)
-      setData(result)
+      const result = await api<{ requests: StaffRequest[]; counts: Partial<Record<RequestStatus, number>>; today: number }>(`/admin/requests?${query}`)
+      if (call !== latest.current) return
+      const before = newestSeen.current
+      setFresh(new Set(before ? result.requests.filter((r) => r.createdAt > before).map((r) => r.id) : []))
+      for (const r of result.requests) if (!newestSeen.current || r.createdAt > newestSeen.current) newestSeen.current = r.createdAt
+      setData({ ...result, query })
       setError(false)
       setUpdatedAt(new Date().toISOString())
     } catch (e) {
+      if (call !== latest.current) return
       if (e instanceof ApiError && (e.code === 'unauthorized' || e.code === 'forbidden')) sessionEnded()
       setError(true)
     } finally {
-      setLoading(false)
+      if (call === latest.current) setLoading(false)
     }
   }, [filter, debounced, branch, kind, sessionEnded])
 
@@ -110,7 +133,11 @@ export function RequestsView({ user }: { user: User }) {
 
   const counts = data?.counts ?? {}
   const countFor = (f: Filter) =>
-    f === 'all' ? Object.values(counts).reduce((a, b) => a + (b ?? 0), 0) : FILTER_STATUSES[f].reduce((a, st) => a + (counts[st] ?? 0), 0)
+    f === 'today'
+      ? (data?.today ?? 0)
+      : f === 'all'
+        ? Object.values(counts).reduce((a, b) => a + (b ?? 0), 0)
+        : FILTER_STATUSES[f].reduce((a, st) => a + (counts[st] ?? 0), 0)
 
   useEffect(() => {
     const waiting = counts.new ?? 0
@@ -118,6 +145,8 @@ export function RequestsView({ user }: { user: User }) {
   }, [counts.new, s.title])
 
   const requests = data?.requests ?? []
+  // While a new filter or search loads, the old list stays but dims, so the page doesn't jump.
+  const outdated = !!data && data.query !== queryFor(filter, query.trim(), branch, kind)
 
   return (
     <div>
@@ -190,7 +219,13 @@ export function RequestsView({ user }: { user: User }) {
       </div>
 
       <div className="mt-6" aria-busy={!data && !error}>
-        {!data && !error && <p className="py-10 text-center text-taupe-ink">{s.loading}</p>}
+        {!data && !error && (
+          <ul className="grid gap-3" aria-label={s.loading}>
+            {[0, 1, 2, 3].map((i) => (
+              <li key={i} className="skeleton h-20 rounded-2xl" />
+            ))}
+          </ul>
+        )}
         {error && (
           <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-blush-soft p-5" role="alert">
             <p>{s.loadError}</p>
@@ -199,14 +234,14 @@ export function RequestsView({ user }: { user: User }) {
             </Button>
           </div>
         )}
-        {data && requests.length === 0 && (
+        {data && requests.length === 0 && !outdated && (
           <p className="rounded-2xl border border-dashed border-line-strong p-10 text-center text-taupe-ink">
             {debounced ? s.emptySearch : s.emptyRequests}
           </p>
         )}
 
         {requests.length > 0 && (
-          <>
+          <div className={`transition-opacity duration-200 ${outdated ? 'opacity-50' : ''}`}>
             {/* Desktop: table */}
             <div className="hidden overflow-hidden rounded-2xl border border-line bg-paper lg:block">
               <table className="w-full text-start text-sm">
@@ -279,11 +314,17 @@ export function RequestsView({ user }: { user: User }) {
                       <WhenCell r={r} />
                       <span>{pick(getBranch(r.branchId as BranchId)?.name ?? { en: r.branchId, ar: r.branchId })}</span>
                     </span>
+                    <span className="mt-2 flex flex-wrap justify-between gap-2 border-t border-line pt-2 text-xs text-taupe-ink">
+                      <span>
+                        {s.columns.received} {formatCairoDateTime(r.createdAt, lang)}
+                      </span>
+                      <bdi className="tabular">{r.reference}</bdi>
+                    </span>
                   </button>
                 </li>
               ))}
             </ul>
-          </>
+          </div>
         )}
       </div>
 
