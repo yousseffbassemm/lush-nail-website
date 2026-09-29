@@ -244,7 +244,11 @@ test.describe('edge cases', () => {
 
     await admin.patch(`/api/admin/staff/${user.id}`, { data: { disabled: true } })
     await admin.dispose()
-    await page.getByRole('button', { name: 'Refresh' }).click()
+    // Refreshing is their next action — unless a background refresh has already noticed and signed them out.
+    await page
+      .getByRole('button', { name: 'Refresh' })
+      .click({ timeout: 3000 })
+      .catch(() => undefined)
     await expect(page.getByRole('heading', { name: 'Staff sign-in', level: 1 })).toBeVisible()
   })
 })

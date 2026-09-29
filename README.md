@@ -122,16 +122,17 @@ The site now needs a small Node server, not static hosting. Any VPS or Node host
 
 ## Motion
 
-Motion is choreographed rather than constant:
+Motion is choreographed rather than constant, and its signature comes from the salon itself: **every illustrated nail is painted the way a technician paints one.** It starts bare with a natural white tip. A stroke of polish goes down the centre, then one down each side, then tips, cat-eye light or hand-painted art go on, and finally a top-coat shine slides up the nail.
 
-- **Hero on load:** the camouflage fades in, the headline reveals line by line, the framed plate rises, the nails are dealt in one by one, a sheen passes across the plate, and the spa circle settles into a slow float.
-- **Sections:** they rise into place the first time they scroll into view.
-- **Menu:** tabs switch with a sliding gold underline and the rows cascade in. Adding a service pops a check and bumps the selection count.
-- **Gallery:** tiles lift with a sheen on hover.
+- **Hero on load:** the camouflage fades in, the headline reveals line by line, the framed plate rises with bare nails, and the set is painted nail by nail. With a mouse or trackpad, the camouflage layers drift apart slightly as the pointer moves.
+- **Gallery:** each look waits with bare nails and is painted as it scrolls into view. On hover, tiles lift and the top coat catches the light.
+- **Sections:** they rise into place the first time they scroll into view. The bridal section meets the page with soft camouflage-shaped edges.
+- **Menu:** tabs switch with a sliding gold underline and the rows cascade in. A chosen service fills from its leading edge like a stroke of polish (from the right in Arabic), with a check that pops in.
+- **Buttons:** the main buttons catch a top-coat shine on hover.
 - **Request flow:** steps slide in the direction of travel, mirrored in Arabic, and the progress bar fills.
 - **Dashboard:** new requests flash softly, and the detail drawer slides in from the side.
 
-Only `transform` and `opacity` animate, and nothing hijacks scrolling. The operating system's reduced-motion setting turns all of it off. The hero sequence is shown frame by frame in `docs/previews/hero-entrance-frames.jpg`.
+Motion uses `transform`, `opacity`, stroke drawing and clip paths only, and nothing hijacks scrolling. The operating system's reduced-motion setting turns all of it off, and the nails are then simply shown finished. The browser tests check that no nail or section is ever left bare or hidden, with motion on or off.
 
 ## Needs connecting or confirming before launch
 
@@ -158,11 +159,12 @@ Only `transform` and `opacity` animate, and nothing hijacks scrolling. The opera
 Checked with headless Chromium against the production build and server.
 
 - **Server tests (13):** sign-up and validation, the same number written different ways, generic log-in errors, cross-site write refusal, rate limiting, request validation (past dates, unknown services), customers isolated from each other, staff scoped to their branch and unable to file customer requests, confirmation rules (no past dates), no customer cancellation after the day, searches by reference never matching phone numbers, internal notes not leaking, single-use reset codes that revoke old sessions, a new sign-in replacing the old session, and admin self-lockout prevention.
-- **Browser tests (41 scenarios × desktop 1440, mobile 390 and full motion = 123 runs, all passing)** in `e2e/`. Any console error or warning, failed request, request to another site, accessibility violation or horizontal overflow fails the test. The same suite also passes against the Vite dev server with no React development warnings.
+- **Browser tests (50 scenarios across desktop 1440, mobile 390 and full motion: 147 runs, all passing)** in `e2e/`. Any console error or warning, failed request, request to another site, accessibility violation or horizontal overflow fails the test. The same suite also passes against the Vite dev server with no React development warnings.
   - *Visitor:* home page in both languages; navigation, deep links, menu tabs by mouse and keyboard, gallery viewer, FAQ, language memory, only verified outbound links, a real 404 page, and the security headers.
   - *Customer:* sign-up inside the flow, then log out and back in; validation on every step; carrying a look, branch or bridal package into the request; switching language mid-request; a double tap sending one request; a session ending before sending; Cairo dates from abroad; cancelling; profile, email, language and password changes; a reset code from the branch; an existing number offered log in.
   - *Staff and admin:* branch scoping; customers kept out; confirming, rescheduling, completing and declining, with the customer seeing each change; the Today view and search; customer reset codes and links to their requests; adding, moving and disabling staff without locking yourself out; staff asked to log out before requesting as a customer.
-  - *Quality:* axe-core (WCAG 2.1 A/AA and best practice) on every request step, dialog, account page and dashboard screen in English and Arabic; sections never left hidden with or without motion; hero text readable within 1.5 s; the no-server fallback copying a request that names the branch and number.
+  - *Quality:* axe-core (WCAG 2.1 A/AA and best practice) on every request step, dialog, account page and dashboard screen in English and Arabic; sections never left hidden and nails never left bare, with or without motion; hero text readable within 1.5 s; the no-server fallback copying a request that names the branch and number.
+  - *Edge cases:* 768 px tablet layouts; browser back and forward; very long names and notes; a booking made with the keyboard alone; a full Arabic booking typed with Arabic-Indic digits; closing the panel while a slow request is still sending; two staff acting on the same request; a staff member disabled mid-shift.
 - **Lighthouse (production server, local):** desktop 100 performance, 100 accessibility, 100 best practices; mobile (simulated slow 4G) 95, 100, 100. SEO shows 63 only because of the intentional `noindex`.
 - **Weight:** pages and scripts are served compressed (about 122 KB of script and 13 KB of CSS gzipped); the dashboard is a separate download that customers never load.
 
