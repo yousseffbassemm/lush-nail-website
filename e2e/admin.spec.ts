@@ -45,6 +45,28 @@ test.describe('staff dashboard', () => {
     await expect(page.getByRole('heading', { name: 'This area is for Lush staff' })).toBeVisible()
   })
 
+  test('staff reach the dashboard from the footer of the main site, and back', async ({ page }) => {
+    await page.goto('/?lang=ar')
+    await expect(page.locator('footer').getByRole('link', { name: 'دخول الموظفين' })).toBeVisible()
+    await page.goto('/?lang=en')
+    const footerLink = page.locator('footer').getByRole('link', { name: 'Staff sign-in' })
+    await expect(footerLink).toHaveAttribute('href', '/admin')
+    await expect(footerLink).toHaveAttribute('rel', 'nofollow')
+    await footerLink.click()
+    await expect(page).toHaveURL(/\/admin(\?lang=en)?$/)
+    await expect(page.getByRole('heading', { name: 'Staff sign-in', level: 1 })).toBeVisible()
+    await page.getByLabel('Mobile number').fill(DEMO.staff.phone)
+    await page.getByLabel('Password', { exact: true }).fill(DEMO.staff.password)
+    await page.getByRole('button', { name: 'Log in', exact: true }).click()
+    await expect(page.getByText('New Cairo branch')).toBeVisible()
+
+    // "View website" returns to the site, where the footer now says where the dashboard is.
+    await page.getByRole('link', { name: 'View website' }).click()
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Beautiful nails.')
+    await page.locator('footer').getByRole('link', { name: 'Staff dashboard' }).click()
+    await expect(page.getByText('New Cairo branch')).toBeVisible()
+  })
+
   test('confirm, reschedule and complete a request; the customer sees each change', async ({ page, browser }) => {
     const customer = await customerWithRequest({ notes: 'Short almond please' })
     await signIn(page, DEMO.staff)

@@ -2,12 +2,15 @@ import { useI18n } from '../../i18n/I18nProvider'
 import { branches, site } from '../../content/site'
 import { goToSection } from '../../lib/scroll'
 import { Link } from '../../lib/router'
+import { useAuth } from '../../auth/AuthProvider'
 import { Logo } from '../brand/Logo'
 import { Icon } from '../ui/Icon'
 import { NAV_ITEMS } from './Header'
 
 export function Footer() {
   const { t, pick, lang, setLang } = useI18n()
+  const { user } = useAuth()
+  const signedInStaff = !!user && user.role !== 'customer'
 
   return (
     <footer className="bg-charcoal text-ivory/85">
@@ -113,16 +116,26 @@ export function Footer() {
           <p>
             © {new Date().getFullYear()} {t.common.businessName}. {t.footer.note}
           </p>
-          <a
-            href={site.priceListUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-10 items-center gap-1.5 underline decoration-ivory/30 underline-offset-4 hover:text-ivory"
-          >
-            {t.footer.priceList}
-            <Icon name="external" size={14} />
-            <span className="sr-only">{t.common.opensInNewTab}</span>
-          </a>
+          <div className="flex flex-wrap items-center gap-x-6">
+            <a
+              href={site.priceListUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-10 items-center gap-1.5 underline decoration-ivory/30 underline-offset-4 hover:text-ivory"
+            >
+              {t.footer.priceList}
+              <Icon name="external" size={14} />
+              <span className="sr-only">{t.common.opensInNewTab}</span>
+            </a>
+            {/* The way in for reception and the owner; kept quiet so it doesn't compete with booking. */}
+            <Link
+              to="/admin"
+              rel="nofollow"
+              className="inline-flex min-h-10 items-center underline decoration-ivory/30 underline-offset-4 hover:text-ivory"
+            >
+              {signedInStaff ? t.nav.dashboard : t.footer.staff}
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

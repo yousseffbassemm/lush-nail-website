@@ -63,7 +63,7 @@ Stack: React 19, TypeScript, Tailwind CSS 4, Vite (site); Hono on Node with SQLi
 6. Customers can cancel a request until its day has passed. A request whose day passed without a confirmation moves to *Past* and says so honestly.
 7. Trying to sign up with a number that already has an account offers "Log in with this number".
 
-**Staff and admins** (`/admin`)
+**Staff and admins** (`/admin`, also linked as *Staff sign-in* at the bottom of every page; it reads *Staff dashboard* once a staff member is signed in)
 - **Requests:** filter by *Needs reply*, *Today* (confirmed for today, in time order), *In touch*, *Confirmed*, *Closed* or *All*; search by name, mobile or reference; filter by branch and by type (appointment or bridal).
   - The list refreshes every 30 seconds, genuinely new arrivals are highlighted, and the browser tab shows the count waiting.
   - Opening a request shows the customer, with call and WhatsApp buttons, and the services with the menu prices at the time of the request. It also shows the preferred date and time, notes and history.

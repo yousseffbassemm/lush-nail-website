@@ -165,6 +165,7 @@ const en = {
     follow: 'Follow',
     language: 'Language',
     priceList: 'Official price list',
+    staff: 'Staff sign-in',
     note: 'Prices in Egyptian pounds, from the current price list.',
   },
   notFound: {
@@ -576,6 +577,7 @@ const ar: Strings = {
     follow: 'تابعينا',
     language: 'اللغة',
     priceList: 'قائمة الأسعار الرسمية',
+    staff: 'دخول الموظفين',
     note: 'الأسعار بالجنيه المصري من قائمة الأسعار الحالية.',
   },
   notFound: {
