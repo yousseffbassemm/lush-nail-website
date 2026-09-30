@@ -24,9 +24,11 @@ Requires **Node.js 22.18 or newer** (24 LTS recommended). The database is SQLite
 
 ```bash
 npm install
-npm run seed:demo    # optional: fictional demo accounts and requests (development only)
+npm run seed:demo    # creates the demo accounts below, plus a few requests (development only)
 npm run dev          # site on http://localhost:5173, API on :8787 (add ?lang=ar for Arabic)
 ```
+
+The database (`data/lush.db`) isn't part of the repository, so a fresh copy has **no accounts at all** until you run `npm run seed:demo` (or `npm run create-admin` for a real owner account). Until then every sign-in is refused, and the staff sign-in page and the server's terminal both say so. Running `seed:demo` again is safe: it resets the demo numbers to the passwords below, even if one of them was already used.
 
 Demo sign-ins created by `seed:demo`:
 

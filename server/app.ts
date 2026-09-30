@@ -34,6 +34,7 @@ import {
   findUserByPhone,
   getRequest,
   getRequestByReference,
+  hasStaffAccounts,
   inScope,
   insertRequest,
   insertUser,
@@ -66,13 +67,15 @@ export interface AppOptions {
   trustProxy?: boolean
   /** Multiplies every rate limit. Only the end-to-end test server raises it; production uses 1. */
   rateLimitScale?: number
+  /** Development only: the staff sign-in may point to the demo accounts when none exist. */
+  demoHints?: boolean
 }
 
 type Env = { Variables: { user: UserRow | null; token: string | null } }
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
-export function createApp({ db, secureCookies, appOrigin, trustProxy = false, rateLimitScale = 1 }: AppOptions) {
+export function createApp({ db, secureCookies, appOrigin, trustProxy = false, rateLimitScale = 1, demoHints = false }: AppOptions) {
   const app = new Hono<Env>()
   const cookieName = secureCookies ? '__Host-lush_session' : 'lush_session'
 
@@ -154,6 +157,9 @@ export function createApp({ db, secureCookies, appOrigin, trustProxy = false, ra
   }
 
   // ---------------------------------------------------------------- auth
+
+  /** Whether anyone can sign in to the dashboard yet, so a fresh install can say how to set it up. */
+  app.get('/api/auth/setup', (c) => c.json({ staffAccounts: hasStaffAccounts(db), demo: demoHints }))
 
   app.get('/api/auth/me', (c) => {
     const user = c.get('user')

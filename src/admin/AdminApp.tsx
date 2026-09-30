@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { api } from '../lib/api'
 import { useI18n } from '../i18n/I18nProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { AuthPanel } from '../auth/AuthPanel'
@@ -24,6 +25,56 @@ function Shell({ children }: { children: React.ReactNode }) {
         {t.common.skipToContent}
       </a>
       {children}
+    </div>
+  )
+}
+
+/**
+ * On a server where nobody can sign in yet, say so and how to fix it, rather than letting every
+ * attempt end in "doesn't match".
+ */
+function SetupNotice() {
+  const s = useAdminStrings()
+  const [setup, setSetup] = useState<{ staffAccounts: boolean; demo: boolean } | null>(null)
+  useEffect(() => {
+    let current = true
+    api<{ staffAccounts: boolean; demo: boolean }>('/auth/setup')
+      .then((result) => current && setSetup(result))
+      .catch(() => undefined)
+    return () => {
+      current = false
+    }
+  }, [])
+  if (!setup || setup.staffAccounts) return null
+  const command = (text: string) => (
+    <code dir="ltr" className="whitespace-nowrap rounded bg-blush-soft px-1.5 py-0.5 text-[0.85em]">
+      {text}
+    </code>
+  )
+  return (
+    <div role="note" className="mb-6 rounded-xl border border-gold-soft bg-ivory p-4 text-sm leading-relaxed">
+      <p className="font-medium">{s.setup.title}</p>
+      <p className="mt-1 text-charcoal/85">
+        {s.setup.owner[0]}
+        {command('npm run create-admin')}
+        {s.setup.owner[1]}
+      </p>
+      {/* Only where demo accounts can exist: development, never a production server. */}
+      {setup.demo && (
+        <p className="mt-1 text-charcoal/85">
+          {s.setup.demo[0]}
+          {command('npm run seed:demo')}
+          {s.setup.demo[1]}
+          <bdi dir="ltr" className="tabular whitespace-nowrap font-medium">
+            010 0000 0001
+          </bdi>
+          {s.setup.demo[2]}
+          <bdi dir="ltr" className="whitespace-nowrap font-medium">
+            demo-admin-2026
+          </bdi>
+          {s.setup.demo[3]}
+        </p>
+      )}
     </div>
   )
 }
@@ -88,6 +139,7 @@ export default function AdminApp() {
               </div>
             ) : (
               <>
+                <SetupNotice />
                 <AuthPanel initialMode="login" allowSignup={false} headingLevel="h1" loginCopy={{ title: s.loginTitle, help: s.loginHelp }} />
               </>
             )}

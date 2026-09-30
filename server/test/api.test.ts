@@ -308,6 +308,46 @@ test('searching by reference or name never matches phone numbers by accident', a
   )
 })
 
+test('the staff sign-in can tell when nobody has been set up yet', async () => {
+  const db = openDatabase(':memory:')
+  const dev = createApp({ db, secureCookies: false, demoHints: true })
+  const prod = createApp({ db, secureCookies: false })
+  const setup = async (app: App) => (await app.request(`${ORIGIN}/api/auth/setup`)).json()
+  assert.deepEqual(await setup(dev), { staffAccounts: false, demo: true })
+  assert.deepEqual(await setup(prod), { staffAccounts: false, demo: false }, 'a production server never mentions demo accounts')
+  await makeStaff(db, 'admin', '+201000000001', null)
+  assert.deepEqual(await setup(prod), { staffAccounts: true, demo: false })
+})
+
+test('the demo seed makes its documented sign-ins work, even on numbers already in use', async () => {
+  const { mkdtempSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { execFileSync } = await import('node:child_process')
+  const dir = mkdtempSync(join(tmpdir(), 'lush-seed-'))
+  const path = join(dir, 'lush.db')
+  try {
+    // Someone signed up with the demo admin's number while testing, with another password.
+    const before = openDatabase(path)
+    insertUser(before, { role: 'customer', firstName: 'Tester', phone: '+201000000001', email: null, passwordHash: await hashPassword('something-else'), branchId: null, lang: 'en' })
+    before.close()
+
+    const env = { ...process.env, DB_PATH: path, LUSH_SCRYPT_N: '16384', NODE_ENV: 'development' }
+    const output = execFileSync(process.execPath, ['--import', 'tsx', 'server/cli/seed-demo.ts'], { env, encoding: 'utf8' })
+    assert.match(output, /010 0000 0001\s+demo-admin-2026/)
+
+    const db = openDatabase(path)
+    const app = createApp({ db, secureCookies: false })
+    const admin = await client(app).post('/api/auth/login', { phone: '010 0000 0001', password: 'demo-admin-2026' })
+    assert.equal(admin.status, 200)
+    assert.equal(admin.json.user.role, 'admin')
+    assert.equal((await client(app).post('/api/auth/login', { phone: '010 0000 0002', password: 'demo-staff-2026' })).status, 200)
+    db.close()
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
 test('signing in again replaces the session this browser had', async () => {
   const { app } = setup()
   const send = (path: string, body: unknown, cookie = '') =>

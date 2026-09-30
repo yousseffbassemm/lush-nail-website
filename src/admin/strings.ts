@@ -11,6 +11,11 @@ const en = {
   tabs: { requests: 'Requests', customers: 'Customers', staff: 'Staff' },
   loginTitle: 'Staff sign-in',
   loginHelp: 'Use the mobile number and password your manager set up for you.',
+  setup: {
+    title: 'No staff accounts have been set up on this server yet.',
+    owner: ['Whoever runs the server creates the owner’s account with ', '.'] as [string, string],
+    demo: ['To try the dashboard with demo accounts instead, run ', ', then sign in with ', ' and the password ', '.'] as [string, string, string, string],
+  },
   notStaffTitle: 'This area is for Lush staff',
   notStaffBody: 'You are signed in with a customer account.',
   offline: 'The Lush server can’t be reached. Check the connection and reload.',
@@ -168,6 +173,11 @@ const ar: AdminStrings = {
   tabs: { requests: 'الطلبات', customers: 'العملاء', staff: 'الموظفين' },
   loginTitle: 'دخول الموظفين',
   loginHelp: 'استخدمي رقم الموبايل وكلمة السر اللي المدير عملهم لك.',
+  setup: {
+    title: 'مفيش حسابات موظفين على السيرفر ده لسه.',
+    owner: ['اللي بيشغّل السيرفر يعمل حساب صاحبة المكان بالأمر ', '.'],
+    demo: ['ولو عايزة تجربي اللوحة بحسابات تجريبية، شغّلي ', ' وبعدين سجلي دخول بالرقم ', ' وكلمة السر ', '.'],
+  },
   notStaffTitle: 'الجزء ده لموظفين لاش',
   notStaffBody: 'انتي داخلة بحساب عميلة.',
   offline: 'مش قادرين نوصل لسيرفر لاش. اتأكدي من الاتصال وحدثي الصفحة.',

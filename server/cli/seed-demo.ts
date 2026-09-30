@@ -10,7 +10,7 @@
  */
 import { openDatabase } from '../db'
 import { hashPassword } from '../security'
-import { findUserByPhone, insertRequest, insertUser, updateStatus, type UserRow } from '../store'
+import { deleteUserSessions, findUserById, findUserByPhone, insertRequest, insertUser, updateStatus, type UserRow } from '../store'
 import { addDays, nowInCairo } from '../../src/booking/cairoTime'
 
 if (process.env.NODE_ENV === 'production') {
@@ -20,11 +20,32 @@ if (process.env.NODE_ENV === 'production') {
 
 const db = openDatabase(process.env.DB_PATH ?? 'data/lush.db')
 
+/**
+ * Creates a demo account, or resets it if the number is already in use (say, from testing sign-up),
+ * so the documented sign-ins below always work.
+ */
 async function user(role: UserRow['role'], firstName: string, phone: string, password: string, branchId: string | null = null) {
-  return (
-    findUserByPhone(db, phone) ??
-    insertUser(db, { role, firstName, phone, email: null, passwordHash: await hashPassword(password), branchId, lang: 'en' })
+  const passwordHash = await hashPassword(password)
+  const existing = findUserByPhone(db, phone)
+  if (!existing) return insertUser(db, { role, firstName, phone, email: null, passwordHash, branchId, lang: 'en' })
+  db.prepare('UPDATE users SET role = ?, first_name = ?, password_hash = ?, branch_id = ?, disabled = 0 WHERE id = ?').run(
+    role,
+    firstName,
+    passwordHash,
+    branchId,
+    existing.id,
   )
+  deleteUserSessions(db, existing.id)
+  return findUserById(db, existing.id)!
+}
+
+function printSignIns() {
+  console.log(`
+Demo sign-ins (development only):
+  Admin, all branches      010 0000 0001   demo-admin-2026
+  Staff, New Cairo         010 0000 0002   demo-staff-2026
+  Customer                 010 0000 0003   demo-customer-2026
+Staff sign in at /admin (or "Staff sign-in" at the bottom of any page); customers with "Log in" in the header.`)
 }
 
 const admin = await user('admin', 'Demo Owner', '+201000000001', 'demo-admin-2026')
@@ -39,6 +60,7 @@ const customers = [
 const already = (db.prepare('SELECT COUNT(*) AS n FROM requests').get() as { n: number }).n
 if (already > 0) {
   console.log(`Demo accounts ready; ${already} requests already exist, so no new requests were added.`)
+  printSignIns()
   process.exit(0)
 }
 
@@ -70,4 +92,5 @@ const created = seed.map((s) =>
 updateStatus(db, created[1].id, staff.id, { status: 'confirmed', confirmedDate: created[1].preferred_date, confirmedTime: '12:30', customerMessage: 'See you at 12:30.' })
 updateStatus(db, created[2].id, admin.id, { status: 'contacted' })
 
-console.log('Demo data added. Sign in at /admin with 010 0000 0001 / demo-admin-2026 (see server/cli/seed-demo.ts).')
+console.log('Demo accounts and requests added.')
+printSignIns()

@@ -6,6 +6,7 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { compress } from 'hono/compress'
 import { createApp } from './app'
 import { openDatabase } from './db'
+import { hasStaffAccounts } from './store'
 
 /**
  * Production: serves the built site from dist/ and the API from one process.
@@ -22,6 +23,7 @@ const app = createApp({
   appOrigin: process.env.APP_ORIGIN,
   trustProxy: process.env.TRUST_PROXY === '1',
   rateLimitScale: Number(process.env.LUSH_RATE_LIMIT_SCALE) || 1,
+  demoHints: !production,
 })
 
 if (production) {
@@ -79,4 +81,10 @@ if (production) {
 
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`Lush server on http://localhost:${info.port} (${production ? 'production' : 'API only'}, database ${dbPath})`)
+  if (!hasStaffAccounts(db)) {
+    console.log(
+      `No staff accounts in ${dbPath} yet, so nobody can sign in at /admin. Create the owner's account with \`npm run create-admin\`` +
+        (production ? '.' : ', or add demo accounts with `npm run seed:demo`.'),
+    )
+  }
 })

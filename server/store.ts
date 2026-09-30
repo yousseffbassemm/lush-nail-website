@@ -450,6 +450,11 @@ export function listCustomers(db: DB, q: string) {
   return rows.map((r) => ({ ...publicUser(r), requestCount: r.request_count, lastRequestAt: r.last_request_at }))
 }
 
+/** True once at least one staff member or admin can sign in. */
+export function hasStaffAccounts(db: DB) {
+  return !!db.prepare("SELECT 1 FROM users WHERE role IN ('staff', 'admin') AND disabled = 0 LIMIT 1").get()
+}
+
 export function listStaff(db: DB) {
   return (db.prepare(`SELECT * FROM users WHERE role IN ('staff', 'admin') ORDER BY role DESC, first_name`).all() as unknown as UserRow[]).map(
     publicUser,
